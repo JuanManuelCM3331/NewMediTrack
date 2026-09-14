@@ -31,6 +31,20 @@ class TreatmentUpdate(BaseModel):
     instructions: str | None = Field(default=None, max_length=500)
     active: bool | None = None
 
+    @field_validator("schedule_times")
+    @classmethod
+    def updated_times_are_valid(cls, values: list[str] | None) -> list[str] | None:
+        if values is None:
+            return None
+        for value in values:
+            parts = value.split(":")
+            if len(parts) != 2 or not all(part.isdigit() for part in parts):
+                raise ValueError("Cada hora debe usar el formato HH:MM")
+            hour, minute = (int(part) for part in parts)
+            if hour not in range(24) or minute not in range(60):
+                raise ValueError("La hora debe estar entre 00:00 y 23:59")
+        return sorted(set(values))
+
 
 class TreatmentOut(BaseModel):
     id: int

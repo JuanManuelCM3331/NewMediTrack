@@ -10,7 +10,9 @@ from crud import get_user_by_email
 from database import get_db
 from models import User
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY debe estar definida en las variables de entorno")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 bearer_scheme = HTTPBearer(auto_error=False)

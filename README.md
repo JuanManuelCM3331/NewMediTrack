@@ -76,19 +76,21 @@ El usuario administrador se crea automáticamente al iniciar la aplicación si t
 - Marcado automático como omitida después de cinco minutos sin decisión.
 - Autenticación JWT con expiración.
 
-## Variables de entorno opcionales
+## Variables de entorno
 
-Puedes configurar estos valores antes de iniciar la aplicación:
+La aplicación carga las variables desde `.env`. Copia la plantilla y cambia sus valores:
 
 ```powershell
-$env:SECRET_KEY="cambia-esta-clave-en-produccion"
-$env:ACCESS_TOKEN_EXPIRE_MINUTES="480"
-$env:DATABASE_URL="sqlite:///./meditrack.db"
-$env:DEMO_EMAIL="demo@meditrack.app"
-$env:DEMO_PASSWORD="MediTrack123!"
+Copy-Item .env.example .env
 ```
 
-En producción se recomienda cambiar `SECRET_KEY`, `DEMO_EMAIL` y `DEMO_PASSWORD`.
+Define una `SECRET_KEY` larga y aleatoria. El archivo `.env` está excluido por `.gitignore` y nunca debe subirse al repositorio.
+
+Las rutas principales de autenticación son:
+
+- `POST /api/sessions`: iniciar sesión y obtener el JWT.
+- `POST /api/users`: registrar un usuario.
+- `GET/PUT /api/users/me`: consultar o actualizar el perfil.
 
 ## Estructura principal
 
@@ -103,4 +105,3 @@ dependencies.py  JWT, usuario actual y roles
 templates/       Interfaz HTML
 static/          JavaScript y estilos
 ```
-# NewMediTrack

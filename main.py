@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,7 +12,7 @@ from sqlalchemy import select
 from crud import create_user
 from database import Base, SessionLocal, engine
 from models import User
-from routers import auth, medications, treatments
+from routers import admin, auth, medications, sessions, treatments
 
 BASE_DIR = Path(__file__).resolve().parent
 logging.basicConfig(level=logging.INFO)
@@ -33,9 +33,20 @@ async def domain_error_handler(request: Request, exc: DomainError):
 	return JSONResponse(status_code=422, content={"success": False, "data": None, "message": exc.detail})
 
 
+@app.exception_handler(HTTPException)
+async def http_error_handler(request: Request, exc: HTTPException):
+	return JSONResponse(status_code=exc.status_code, content={"success": False, "data": None, "message": exc.detail}, headers=exc.headers)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError):
-	return JSONResponse(status_code=422, content={"success": False, "data": None, "message": "Revisa los datos enviados", "errors": exc.errors()})
+	errors = []
+	for error in exc.errors():
+		error_copy = dict(error)
+		if error_copy.get("ctx"):
+			error_copy["ctx"] = {key: str(value) for key, value in error_copy["ctx"].items()}
+		errors.append(error_copy)
+	return JSONResponse(status_code=422, content={"success": False, "data": None, "message": "Revisa los datos enviados", "errors": errors})
 
 
 @app.exception_handler(Exception)
@@ -49,8 +60,12 @@ def startup():
 	Base.metadata.create_all(bind=engine)
 	db = SessionLocal()
 	try:
-		if not db.scalar(select(User).where(User.email == os.getenv("DEMO_EMAIL", "demo@meditrack.app"))):
-			create_user(db, os.getenv("DEMO_EMAIL", "demo@meditrack.app"), "María MediTrack", os.getenv("DEMO_PASSWORD", "MediTrack123!"), "admin")
+		demo_email = os.getenv("DEMO_EMAIL")
+		demo_password = os.getenv("DEMO_PASSWORD")
+		if demo_email and demo_password and not db.scalar(select(User).where(User.email == demo_email.lower())):
+			create_user(db, demo_email, os.getenv("DEMO_NAME", "María MediTrack"), demo_password, "admin")
+		elif not demo_email or not demo_password:
+			logger.warning("DEMO_EMAIL y DEMO_PASSWORD no están definidas; se omite el usuario demo")
 	finally:
 		db.close()
 
@@ -66,8 +81,10 @@ async def dashboard_page(request: Request):
 
 
 app.include_router(auth.router, prefix="/api")
+app.include_router(sessions.router, prefix="/api")
 app.include_router(medications.router, prefix="/api")
 app.include_router(treatments.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 @app.get("/health", tags=["Sistema"])
