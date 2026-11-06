@@ -129,16 +129,26 @@ def get_today_schedule(db: Session, user_id: int) -> list[dict]:
                 is_due = False
                 minutes_left = None
 
+        # La dosis solo se puede tomar desde 15 min antes hasta 15 min después de scheduled_at
+        diff_seconds = (now - dose.scheduled_at).total_seconds()
+        can_take = (
+            (dose.status in {"pending", "snoozed"})
+            and (-15 * 60 <= diff_seconds <= 15 * 60)
+        )
+
         iso_scheduled = dose.scheduled_at.replace(tzinfo=tz).isoformat()
         data.append({
             "id": dose.id,
             "treatment_id": dose.treatment_id,
             "medication_name": dose.treatment.medication.name if (dose.treatment and dose.treatment.medication) else "Desconocido",
             "dosage": dose.treatment.dosage if dose.treatment else "",
+            "notes": dose.treatment.medication.notes if (dose.treatment and dose.treatment.medication) else None,
+            "instructions": dose.treatment.instructions if dose.treatment else None,
             "scheduled_at": iso_scheduled,
             "status": dose.status,
             "minutes_left": minutes_left,
             "is_due": is_due,
+            "can_take": can_take,
         })
 
     db.commit()
@@ -158,6 +168,16 @@ def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple
         raise ConflictError("No puedes posponer una dosis que ya fue omitida")
 
     now = get_app_now_naive()
+
+    # Validación de ventana para tomar la dosis: 15 minutos antes y hasta 15 minutos después
+    if decision == "taken":
+        diff_seconds = (now - dose.scheduled_at).total_seconds()
+        if not (-15 * 60 <= diff_seconds <= 15 * 60):
+            if diff_seconds < -15 * 60:
+                mins_to_wait = int((-diff_seconds) // 60)
+                raise ConflictError(f"Aún es muy pronto para tomar esta dosis. Podrás tomarla 15 minutos antes de la hora (en {mins_to_wait} min).")
+            else:
+                raise ConflictError("El tiempo para tomar esta dosis ya expiró (más de 15 minutos después de la hora programada).")
     medication = dose.treatment.medication if dose.treatment else None
     qty = parse_dosage_quantity(dose.treatment.dosage) if dose.treatment else 1
 

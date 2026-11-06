@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from tests.conftest import TestingSessionLocal
 from core.security import create_access_token
 from core.time_utils import get_app_now_naive, get_app_today
@@ -35,11 +36,15 @@ def test_dedicated_doses_router_endpoints(client):
     db.commit()
     db.refresh(med)
 
+    # Usamos la hora actual formateada para que la dosis esté exactamente dentro de la ventana de +/- 15 min
+    current_time_str = now.strftime("%H:%M")
+    later_time = (now + timedelta(hours=6)).strftime("%H:%M")
+
     treatment = Treatment(
         owner_id=user_id,
         medication_id=med.id,
         dosage="1 tableta",
-        schedule_times=json.dumps(["08:00", "20:00"]),
+        schedule_times=json.dumps([current_time_str, later_time]),
         start_date=today,
         duration_days=3,
         active=True,

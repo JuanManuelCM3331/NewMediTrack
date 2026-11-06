@@ -6,27 +6,205 @@
   <title>MediTrack | Mi agenda</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"DM Sans"', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+          boxShadow: { soft: '0 10px 30px -8px rgba(24,60,50,.14)', lift: '0 16px 40px -10px rgba(24,60,50,.22)' },
+          colors: {
+            ink: '#1b2d31', muted: '#4f6165', paper: '#e9f0e7', line: '#d5e0d8',
+            brand: { DEFAULT: '#237a62', dark: '#185b4a', mint: '#d9f1e4' },
+            sun: { DEFAULT: '#f8e5a4', deep: '#e0aa45' },
+            coral: { DEFAULT: '#ed816d', dark: '#a54b40' }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="app-page">
-  <header class="topbar">
-    <a class="brand-mark" href="/app"><span>+</span> MediTrack</a>
-    <div class="user-menu"><div class="avatar" id="user-avatar">M</div><div><strong id="user-name">Cargando...</strong><small id="user-role">Usuario</small></div><button id="profile-button" class="button button-small" type="button">Editar perfil</button><button id="logout-button" class="icon-button" title="Cerrar sesión">↪</button></div>
+<body class="app-page min-h-screen overflow-x-hidden bg-paper font-sans text-ink antialiased">
+  <header class="sticky top-0 z-20 bg-white/90 shadow-soft backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
+      <a class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark" href="/app"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack</a>
+      <div class="flex items-center gap-3">
+        <div class="grid h-11 w-11 place-items-center rounded-full bg-sun text-lg font-bold text-[#6b5314]" id="user-avatar">M</div>
+        <div class="hidden leading-tight sm:block"><strong id="user-name" class="block text-base">Cargando...</strong><small id="user-role" class="text-sm text-muted">Usuario</small></div>
+        <button id="profile-button" class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand-mint px-5 text-base font-bold text-brand-dark transition hover:bg-brand hover:text-white focus:outline-none focus:ring-4 focus:ring-brand/30" type="button"><i data-icon="pencil" class="h-5 w-5"></i><span class="max-sm:hidden">Editar perfil</span><span class="sm:hidden">Perfil</span></button>
+        <button id="logout-button" class="grid h-12 w-12 place-items-center rounded-full bg-[#f1f5f1] text-ink transition hover:bg-[#ffe5df] hover:text-coral-dark focus:outline-none focus:ring-4 focus:ring-coral/30" title="Cerrar sesión" aria-label="Cerrar sesión"><i data-icon="logout" class="h-6 w-6"></i></button>
+      </div>
+    </div>
   </header>
-  <main class="app-shell">
-    <section class="welcome-row"><div><p class="eyebrow">Panel de hoy</p><h1>Hola, <span id="welcome-name">María</span>.</h1><p class="muted">Un pequeño recordatorio puede cambiar tu día.</p></div><div class="date-stamp"><span id="day-name">HOY</span><strong id="today-date">--</strong></div></section>
-    <div id="app-message" class="toast" role="status"></div>
-    <section class="next-dose" id="next-dose-card"><div class="next-icon">✦</div><div class="next-copy"><span class="eyebrow">Próxima dosis</span><h2 id="next-dose-title">Todo al día por ahora</h2><p id="next-dose-detail">Tus próximas tomas aparecerán aquí.</p></div><span id="next-dose-time" class="time-pill">--:--</span></section>
-    <section class="stats-grid"><article class="stat-card"><span class="stat-icon green">✓</span><div><strong id="taken-count">0</strong><span>Tomadas hoy</span></div></article><article class="stat-card"><span class="stat-icon amber">◷</span><div><strong id="pending-count">0</strong><span>Pendientes</span></div></article><article class="stat-card"><span class="stat-icon coral">!</span><div><strong id="missed-count">0</strong><span>Omitidas</span></div></article></section>
-    <section class="content-grid">
-      <div class="panel agenda-panel"><div class="panel-heading"><div><p class="eyebrow">Seguimiento</p><h2>Agenda de hoy</h2></div><button class="button button-quiet" id="refresh-button">↻ Actualizar</button></div><div id="dose-list" class="dose-list"><div class="empty-state">Cargando tu agenda...</div></div></div>
-      <aside class="side-column"><div class="panel"><div class="panel-heading"><div><p class="eyebrow">Biblioteca</p><h2>Medicamentos</h2></div><button class="button button-small" data-modal="medication-modal">+ Añadir</button></div><div id="medication-list" class="medication-list"></div></div><div class="panel treatment-panel"><div class="panel-heading"><div><p class="eyebrow">En curso</p><h2>Tratamientos</h2></div><button class="button button-small" data-modal="treatment-modal">+ Crear</button></div><div id="treatment-list" class="treatment-list"></div></div><div id="admin-panel" class="panel admin-panel"><div class="panel-heading"><div><p class="eyebrow">Administración</p><h2>Resumen</h2></div><span class="role-badge">Admin</span></div><div class="admin-summary"><div><strong id="admin-users">0</strong><span>Usuarios</span></div><div><strong id="admin-medications">0</strong><span>Medicamentos</span></div><div><strong id="admin-treatments">0</strong><span>Tratamientos</span></div></div></div></aside>
+  <main class="mx-auto max-w-6xl px-4 pb-44 pt-8 sm:px-8 sm:pt-12">
+    <section class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="mb-2 text-sm font-bold uppercase tracking-widest text-brand">Panel de hoy</p>
+        <h1 class="font-serif text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">Hola, <span id="welcome-name">María</span>.</h1>
+        <p class="mt-2 text-lg text-muted">Un pequeño recordatorio puede cambiar tu día.</p>
+      </div>
+      <div class="self-start rounded-3xl bg-white px-6 py-3 shadow-soft sm:self-auto sm:text-right">
+        <span id="day-name" class="block text-sm font-bold tracking-widest text-brand">HOY</span>
+        <strong id="today-date" class="font-serif text-3xl">--</strong>
+      </div>
+    </section>
+
+    <div id="app-message" class="pointer-events-none fixed bottom-6 right-4 z-40 max-w-[calc(100%-2rem)] translate-y-3 rounded-2xl bg-brand-dark px-5 py-4 text-base font-semibold text-white opacity-0 shadow-lift transition sm:right-6" role="status"></div>
+
+    <section class="relative mb-6 flex flex-col items-start gap-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-dark to-brand p-6 text-white shadow-lift sm:flex-row sm:items-center sm:gap-6 sm:p-8" id="next-dose-card">
+      <div class="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10"></div>
+      <div class="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sun text-[#6b5314]"><i data-icon="sparkles" class="h-7 w-7"></i></div>
+      <div class="relative min-w-0">
+        <span class="mb-1 block text-sm font-bold uppercase tracking-widest text-[#a8ecc8]">Próxima dosis</span>
+        <h2 id="next-dose-title" class="font-serif text-3xl font-semibold leading-tight sm:text-4xl">Todo al día por ahora</h2>
+        <p id="next-dose-detail" class="mt-2 text-lg text-[#d9f1e4]">Tus próximas tomas aparecerán aquí.</p>
+      </div>
+      <span id="next-dose-time" class="relative inline-flex items-center rounded-full bg-white/15 px-6 py-3 text-2xl font-bold sm:ml-auto">--:--</span>
+    </section>
+
+    <section class="mb-8 grid gap-4 sm:grid-cols-3">
+      <article class="flex items-center gap-4 rounded-3xl bg-white p-5 shadow-soft">
+        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand-mint text-brand"><i data-icon="check" class="h-7 w-7"></i></span>
+        <div><strong id="taken-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-base font-semibold text-muted">Tomadas hoy</span></div>
+      </article>
+      <article class="flex items-center gap-4 rounded-3xl bg-white p-5 shadow-soft">
+        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#fff2cb] text-[#a67c22]"><i data-icon="clock" class="h-7 w-7"></i></span>
+        <div><strong id="pending-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-base font-semibold text-muted">Pendientes</span></div>
+      </article>
+      <article class="flex items-center gap-4 rounded-3xl bg-white p-5 shadow-soft">
+        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#ffe3dc] text-coral-dark"><i data-icon="alert" class="h-7 w-7"></i></span>
+        <div><strong id="missed-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-base font-semibold text-muted">Omitidas</span></div>
+      </article>
+    </section>
+
+    <nav class="mb-6 overflow-x-auto rounded-full bg-white p-1.5 shadow-soft" role="tablist" aria-label="Secciones">
+      <div class="flex min-w-max gap-1 sm:min-w-0">
+        <button type="button" role="tab" data-tab="agenda" class="tab-btn inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-brand/30"><i data-icon="calendar" class="h-5 w-5"></i>Agenda de hoy</button>
+        <button type="button" role="tab" data-tab="medicamentos" class="tab-btn inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-brand/30"><i data-icon="beaker" class="h-5 w-5"></i>Medicamentos</button>
+        <button type="button" role="tab" data-tab="tratamientos" class="tab-btn inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-brand/30"><i data-icon="clipboard" class="h-5 w-5"></i>Tratamientos</button>
+        <button type="button" role="tab" data-tab="resumen" id="admin-tab" class="tab-btn inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-brand/30 hidden"><i data-icon="shield" class="h-5 w-5"></i>Resumen</button>
+      </div>
+    </nav>
+
+    <section id="tab-agenda" data-tab-panel class="rounded-[2rem] bg-white p-5 shadow-soft sm:p-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-mint text-brand"><i data-icon="calendar" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-brand">Seguimiento</p><h2 class="font-serif text-3xl font-semibold leading-tight">Agenda de hoy</h2></div>
+        </div>
+        <button class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#f1f5f1] px-5 text-base font-bold text-brand-dark transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30" id="refresh-button"><i data-icon="refresh" class="h-5 w-5"></i>Actualizar</button>
+      </div>
+      <div id="dose-list" class="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2"><div class="col-span-full px-2 py-8 text-center text-base text-muted">Cargando tu agenda...</div></div>
+    </section>
+
+    <section id="tab-medicamentos" data-tab-panel class="hidden rounded-[2rem] bg-white p-5 shadow-soft sm:p-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#fff2cb] text-[#a67c22]"><i data-icon="beaker" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-brand">Biblioteca</p><h2 class="font-serif text-3xl font-semibold leading-tight">Medicamentos</h2></div>
+        </div>
+        <button class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" data-modal="medication-modal"><i data-icon="plus" class="h-5 w-5"></i>Añadir</button>
+      </div>
+      <div id="medication-list" class="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </section>
+
+    <section id="tab-tratamientos" data-tab-panel class="hidden rounded-[2rem] bg-white p-5 shadow-soft sm:p-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#deedf4] text-[#2f5d75]"><i data-icon="clipboard" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-brand">En curso</p><h2 class="font-serif text-3xl font-semibold leading-tight">Tratamientos</h2></div>
+        </div>
+        <button class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" data-modal="treatment-modal"><i data-icon="plus" class="h-5 w-5"></i>Crear</button>
+      </div>
+      <div id="treatment-list" class="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </section>
+
+    <section id="tab-resumen" data-tab-panel class="hidden rounded-[2rem] bg-[#f6f0fd] p-5 shadow-soft sm:p-8">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eadff7] text-[#684c8b]"><i data-icon="shield" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-[#684c8b]">Administración</p><h2 class="font-serif text-3xl font-semibold leading-tight">Resumen</h2></div>
+        </div>
+        <span class="rounded-full bg-[#eadff7] px-3 py-1.5 text-sm font-bold text-[#684c8b]">Admin</span>
+      </div>
+      <div class="grid gap-3 text-center sm:grid-cols-3">
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-users" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Usuarios</span></div>
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-medications" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Medicamentos</span></div>
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-treatments" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Tratamientos</span></div>
+      </div>
     </section>
   </main>
-  <div id="dose-alert" class="dose-alert"><div class="alert-symbol">!</div><div><span class="eyebrow">Es hora de cuidarte</span><h3 id="alert-title">Tienes una dosis pendiente</h3><p id="alert-detail">Elige una opción antes de que pasen 5 minutos.</p></div><div class="alert-actions"><button class="button button-take" data-decision="taken">Tomar ahora</button><button class="button button-snooze" data-decision="snoozed">Posponer 10 min</button></div></div>
-  <div id="medication-modal" class="modal"><form class="modal-card" id="medication-form"><button type="button" class="modal-close" data-close>×</button><p class="eyebrow">Nueva entrada</p><h2>Registrar medicamento</h2><label>Nombre<input name="name" required minlength="2" placeholder="Ej. Acetaminofén"></label><label>Presentación<select name="presentation"><option>Tableta</option><option>Cápsula</option><option>Jarabe</option><option>Gotas</option><option>Inyección</option></select></label><label>Existencias<input name="stock" type="number" min="0" value="0"></label><label>Notas <span class="optional">opcional</span><textarea name="notes" rows="2" placeholder="Indicaciones adicionales"></textarea></label><button class="button button-primary button-wide" type="submit">Guardar medicamento</button></form></div>
-  <div id="treatment-modal" class="modal"><form class="modal-card" id="treatment-form"><button type="button" class="modal-close" data-close>×</button><p class="eyebrow">Nueva pauta</p><h2>Crear tratamiento</h2><label>Medicamento<select name="medication_id" id="medication-select" required></select></label><label>¿Cuánto tomar?<input name="dosage" required placeholder="Ej. 1 tableta"></label><label>Horarios <span class="optional">puedes elegir varios</span><input name="schedule_times" type="text" required placeholder="08:00, 20:00"></label><div class="two-fields"><label>Fecha de inicio<input name="start_date" type="date" required></label><label>Duración<input name="duration_days" type="number" min="1" value="7" required></label></div><label>Indicaciones <span class="optional">opcional</span><textarea name="instructions" rows="2" placeholder="Después de comer..."></textarea><button class="button button-primary button-wide" type="submit">Crear tratamiento</button></form></div>
-  <div id="profile-modal" class="modal"><form class="modal-card" id="profile-form"><button type="button" class="modal-close" data-close>×</button><p class="eyebrow">Tu cuenta</p><h2>Editar perfil</h2><p class="muted">Actualiza el nombre que aparece en tu agenda.</p><label for="profile-name">Nombre completo<input id="profile-name" name="full_name" required minlength="2" maxlength="120"></label><button class="button button-primary button-wide" type="submit">Guardar cambios</button></form></div>
-  <script src="/static/app.js?v=7"></script>
+
+  <div id="dose-alert" class="fixed bottom-4 left-1/2 z-30 hidden w-[min(820px,calc(100%-2rem))] -translate-x-1/2 flex-wrap items-center gap-4 rounded-[2rem] bg-white p-5 shadow-lift ring-2 ring-sun-deep/70 sm:p-6">
+    <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sun text-[#6b5314]"><i data-icon="bell" class="h-7 w-7"></i></div>
+    <div class="min-w-0 flex-1 basis-56">
+      <span class="text-sm font-bold uppercase tracking-widest text-brand">Es hora de cuidarte</span>
+      <h3 id="alert-title" class="font-serif text-2xl font-semibold leading-tight">Tienes una dosis pendiente</h3>
+      <p id="alert-detail" class="text-base text-muted">Elige una opción antes de que pasen 5 minutos.</p>
+    </div>
+    <div class="flex w-full gap-3 sm:w-auto">
+      <button class="min-h-[56px] flex-1 rounded-full bg-brand px-6 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 sm:flex-none" data-decision="taken">Tomar ahora</button>
+      <button class="min-h-[56px] flex-1 rounded-full bg-[#eef2ec] px-6 text-base font-bold text-brand-dark transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30 sm:flex-none" data-decision="snoozed">Posponer 10 min</button>
+    </div>
+  </div>
+
+  <div id="medication-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm"><form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="medication-form">
+    <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+    <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Nueva entrada</p><h2 class="font-serif text-3xl font-semibold">Registrar medicamento</h2>
+    <label class="mb-2 mt-5 block text-base font-semibold">Nombre<input name="name" required minlength="2" placeholder="Ej. Acetaminofén" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <label class="mb-2 mt-5 block text-base font-semibold">Presentación<select name="presentation" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"><option>Tableta</option><option>Cápsula</option><option>Jarabe</option><option>Gotas</option><option>Inyección</option></select></label>
+    <label class="mb-2 mt-5 block text-base font-semibold">Existencias<input name="stock" type="number" min="0" value="0" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <label class="mb-2 mt-5 block text-base font-semibold">Notas <span class="text-sm font-normal text-muted">opcional</span><textarea name="notes" rows="2" placeholder="Indicaciones adicionales" class="mt-2 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20"></textarea></label>
+    <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" type="submit">Guardar medicamento</button>
+  </form></div>
+
+  <div id="treatment-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm"><form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="treatment-form">
+    <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+    <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Nueva pauta</p><h2 class="font-serif text-3xl font-semibold">Crear tratamiento</h2>
+    <label class="mb-2 mt-5 block text-base font-semibold">Medicamento<select name="medication_id" id="medication-select" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></select></label>
+    <label class="mb-2 mt-5 block text-base font-semibold">¿Cuánto tomar?<input name="dosage" required placeholder="Ej. 1 tableta" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <label class="mb-2 mt-5 block text-base font-semibold">Horarios <span class="text-sm font-normal text-muted">puedes elegir varios</span><input name="schedule_times" type="text" required placeholder="08:00, 20:00" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <div class="grid gap-x-3 sm:grid-cols-2">
+      <label class="mb-2 mt-5 block text-base font-semibold">Fecha de inicio<input name="start_date" type="date" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+      <label class="mb-2 mt-5 block text-base font-semibold">Duración (días)<input name="duration_days" type="number" min="1" value="7" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    </div>
+    <label class="mb-2 mt-5 block text-base font-semibold">Indicaciones <span class="text-sm font-normal text-muted">opcional</span><textarea name="instructions" rows="2" placeholder="Después de comer..." class="mt-2 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20"></textarea></label>
+    <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" type="submit">Crear tratamiento</button>
+  </form></div>
+
+  <div id="profile-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm"><form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="profile-form">
+    <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+    <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Tu cuenta</p><h2 class="font-serif text-3xl font-semibold">Editar perfil</h2>
+    <p class="mt-1 text-base text-muted">Actualiza el nombre que aparece en tu agenda.</p>
+    <label for="profile-name" class="mb-2 mt-5 block text-base font-semibold">Nombre completo<input id="profile-name" name="full_name" required minlength="2" maxlength="120" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" type="submit">Guardar cambios</button>
+  </form></div>
+
+  <div id="details-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm"><div class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8">
+    <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+    <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Detalles de la dosis</p>
+    <h2 id="details-title" class="pr-10 font-serif text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">Medicamento</h2>
+    <p id="details-sub" class="mt-1 text-base text-muted [overflow-wrap:anywhere]"></p>
+    <section class="mt-6 rounded-3xl bg-[#fff8e8] p-5">
+      <h3 class="mb-2 flex items-center gap-2 text-base font-bold text-[#8a6416]"><i data-icon="note" class="h-5 w-5"></i>Nota del medicamento</h3>
+      <p id="details-notes" class="whitespace-pre-wrap text-base leading-relaxed [overflow-wrap:anywhere]"></p>
+    </section>
+    <section class="mt-4 rounded-3xl bg-[#eef5f9] p-5">
+      <h3 class="mb-2 flex items-center gap-2 text-base font-bold text-[#2f5d75]"><i data-icon="clipboard" class="h-5 w-5"></i>Indicaciones del tratamiento</h3>
+      <p id="details-instructions" class="whitespace-pre-wrap text-base leading-relaxed [overflow-wrap:anywhere]"></p>
+    </section>
+    <button type="button" data-close class="mt-6 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">Cerrar</button>
+  </div></div>
+
+  <div id="medication-edit-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm"><form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="medication-edit-form">
+    <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+    <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Editar medicamento</p>
+    <h2 id="edit-med-name" class="pr-10 font-serif text-3xl font-semibold leading-tight [overflow-wrap:anywhere]"></h2>
+    <input type="hidden" id="edit-med-id">
+    <label for="edit-med-stock" class="mb-2 mt-5 block text-base font-semibold">Existencias<input id="edit-med-stock" type="number" min="0" max="100000" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/20"></label>
+    <label for="edit-med-notes" class="mb-2 mt-5 block text-base font-semibold">Nota <span class="text-sm font-normal text-muted">opcional</span><textarea id="edit-med-notes" rows="4" maxlength="500" class="mt-2 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20" placeholder="Indicaciones adicionales"></textarea></label>
+    <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" type="submit">Guardar cambios</button>
+  </form></div>
+  <script src="/static/app.js?v=13"></script>
 </body>
 </html>
