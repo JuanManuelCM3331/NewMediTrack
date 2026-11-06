@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MediTrack{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"DM Sans"', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+          boxShadow: { soft: '0 10px 30px -8px rgba(24,60,50,.14)', lift: '0 16px 40px -10px rgba(24,60,50,.22)' },
+          colors: {
+            ink: '#1b2d31', muted: '#4f6165', paper: '#e9f0e7', line: '#d5e0d8',
+            brand: { DEFAULT: '#237a62', dark: '#185b4a', mint: '#d9f1e4' },
+            sun: { DEFAULT: '#f8e5a4', deep: '#e0aa45' },
+            coral: { DEFAULT: '#ed816d', dark: '#a54b40' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="{% block body_class %}{% endblock %} min-h-screen overflow-x-hidden font-sans text-ink antialiased" data-page="{{ active_page | default('') }}">
+{% block body %}{% endblock %}
+  <script src="/static/app.js?v=16"></script>
+</body>
+</html>

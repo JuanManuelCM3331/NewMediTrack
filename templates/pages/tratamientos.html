@@ -1,0 +1,18 @@
+{% extends "layouts/app.html" %}
+{% set active_page = "tratamientos" %}
+{% block title %}MediTrack | Tratamientos{% endblock %}
+{% block content %}
+    <section class="rounded-[2rem] bg-white p-5 shadow-soft sm:p-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#deedf4] text-[#2f5d75]"><i data-icon="clipboard" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-brand">En curso</p><h2 class="font-serif text-3xl font-semibold leading-tight">Tratamientos</h2></div>
+        </div>
+        <button class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" data-modal="treatment-modal"><i data-icon="plus" class="h-5 w-5"></i>Crear</button>
+      </div>
+      <div id="treatment-list" class="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </section>
+{% endblock %}
+{% block modals %}
+{% include "partials/modal_treatment.html" %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{# Navegación entre las vistas del panel. Requiere la variable active_page #}
+{% set items = [
+  ('panel', '/app', 'Panel', 'home', false),
+  ('agenda', '/app/agenda', 'Agenda de hoy', 'calendar', false),
+  ('medicamentos', '/app/medicamentos', 'Medicamentos', 'beaker', false),
+  ('tratamientos', '/app/tratamientos', 'Tratamientos', 'clipboard', false),
+  ('resumen', '/app/resumen', 'Resumen', 'shield', true)
+] %}
+<nav class="mb-6 overflow-x-auto rounded-full bg-white p-1.5 shadow-soft" aria-label="Secciones">
+  <div class="flex min-w-max gap-1 sm:min-w-0">
+    {% for key, href, label, icon, admin_only in items %}
+    <a href="{{ href }}"{% if active_page == key %} aria-current="page"{% endif %}
+       class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-brand/30 {% if active_page == key %}bg-brand text-white shadow{% else %}text-muted hover:bg-brand-mint hover:text-brand-dark{% endif %}{% if admin_only %} hidden{% endif %}"
+       {% if admin_only %}data-admin-only{% endif %}><i data-icon="{{ icon }}" class="h-5 w-5"></i>{{ label }}</a>
+    {% endfor %}
+  </div>
+</nav>

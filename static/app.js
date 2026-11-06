@@ -1,3 +1,7 @@
+// Devuelve el elemento o un nodo suelto, para que las vistas parciales no fallen si falta un elemento
+const q = sel => document.querySelector(sel) || document.createElement('div');
+const PAGE = () => document.body.dataset.page || '';
+
 const ICON_PATHS = {
   plus: 'M12 4.5v15m7.5-7.5h-15',
   check: 'M4.5 12.75l6 6 9-13.5',
@@ -16,6 +20,7 @@ const ICON_PATHS = {
   clipboard: 'M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184',
   shield: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
   info: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z',
+  home: 'M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
   bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
 };
 const ico = (name, cls = 'h-5 w-5') =>
@@ -55,6 +60,26 @@ function formatTime(isoString) {
   return isNaN(date.getTime()) ? '--:--' : date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatScheduleDateTime(isoString) {
+  if (!isoString) return '--:--';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '--:--';
+  const timeStr = date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date();
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const targetDateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((targetDateOnly - todayDateOnly) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return timeStr;
+  if (diffDays === 1) return `Mañana · ${timeStr}`;
+  if (diffDays > 1 && diffDays < 7) {
+    const weekday = date.toLocaleDateString('es-CO', { weekday: 'short' });
+    const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', '');
+    return `${capitalized} · ${timeStr}`;
+  }
+  const dayMonth = date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', '');
+  return `${dayMonth} · ${timeStr}`;
+}
+
 // Cliente API con soporte nativo para Cookies HttpOnly seguras
 const api = async (path, options = {}) => {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
@@ -65,8 +90,8 @@ const api = async (path, options = {}) => {
   });
   const body = await response.json().catch(() => ({ message: 'Respuesta inválida del servidor' }));
   if (response.status === 401) {
-    if (!location.pathname.endsWith('/')) {
-      location.href = '/';
+    if (!['/', '/login'].includes(location.pathname)) {
+      location.href = '/login';
     }
   }
   if (!response.ok) {
@@ -79,7 +104,7 @@ const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList
 const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
 
 const showMessage = (message, error = false) => {
-  const node = document.querySelector('#app-message');
+  const node = q('#app-message');
   if (!node) return;
   node.textContent = message;
   node.classList.remove('opacity-0', 'translate-y-3');
@@ -105,8 +130,8 @@ const DELETE_BTN = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-w
 async function handleLogin(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const button = document.querySelector('#login-button');
-  const error = document.querySelector('#login-error');
+  const button = q('#login-button');
+  const error = q('#login-error');
   error.textContent = '';
   if (!form.reportValidity()) return;
   button.disabled = true;
@@ -128,8 +153,8 @@ async function handleLogin(event) {
 async function handleRegister(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const button = document.querySelector('#register-button');
-  const error = document.querySelector('#register-error');
+  const button = q('#register-button');
+  const error = q('#register-error');
   error.textContent = '';
   if (!form.reportValidity()) return;
   button.disabled = true;
@@ -148,39 +173,48 @@ async function handleRegister(event) {
 }
 
 function toggleAuthForm(showRegister) {
-  document.querySelector('#login-form').classList.toggle('hidden', showRegister);
-  document.querySelector('#register-form').classList.toggle('hidden', !showRegister);
+  q('#login-form').classList.toggle('hidden', showRegister);
+  q('#register-form').classList.toggle('hidden', !showRegister);
 }
 
 let currentDoses = [];
+let currentUpcomingDoses = [];
 let currentMedications = [];
 
 async function loadDashboard() {
+  let user;
   try {
     // Validar sesión contra el servidor (no confía en localStorage)
-    const res = await api('/users/me');
-    const user = res.data;
+    user = (await api('/users/me')).data;
     renderUser(user);
-    if (user.role === 'admin') {
-      loadAdminSummary();
-    }
   } catch (err) {
-    location.href = '/';
+    location.href = '/login';
+    return;
+  }
+
+  const page = PAGE();
+  if (page === 'resumen' && user.role !== 'admin') {
+    location.href = '/app';
     return;
   }
 
   const date = new Date();
-  document.querySelector('#today-date').textContent = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
-  document.querySelector('#day-name').textContent = date.toLocaleDateString('es-CO', { weekday: 'long' }).toUpperCase();
-  await Promise.all([loadDoses(), loadMedications(), loadTreatments()]);
+  q('#today-date').textContent = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+  q('#day-name').textContent = date.toLocaleDateString('es-CO', { weekday: 'long' }).toUpperCase();
+  const jobs = [loadDoses(), loadMedications(), loadTreatments()];
+  if (page === 'resumen') jobs.push(loadAdminSummary());
+  await Promise.all(jobs);
 }
 
 function renderUser(user) {
   const fullName = unescapeHtml(user.full_name) || 'Usuario';
-  document.querySelector('#user-name').textContent = fullName;
-  document.querySelector('#user-role').textContent = user.role === 'admin' ? 'Administrador' : 'Usuario estándar';
-  document.querySelector('#welcome-name').textContent = (fullName || 'amigo').split(' ')[0];
-  document.querySelector('#user-avatar').textContent = (fullName || 'M').charAt(0).toUpperCase();
+  q('#user-name').textContent = fullName;
+  q('#user-role').textContent = user.role === 'admin' ? 'Administrador' : 'Usuario estándar';
+  q('#welcome-name').textContent = (fullName || 'amigo').split(' ')[0];
+  q('#user-avatar').textContent = (fullName || 'M').charAt(0).toUpperCase();
+  if (user.role === 'admin') {
+    document.querySelectorAll('[data-admin-only]').forEach(el => el.classList.remove('hidden'));
+  }
 }
 
 async function submitProfile(event) {
@@ -201,8 +235,18 @@ async function submitProfile(event) {
 
 async function loadDoses() {
   try {
-    const res = await api('/doses/today');
-    currentDoses = res.data || [];
+    const isPanel = PAGE() === 'panel';
+    const calls = [api('/doses/today')];
+    if (isPanel) {
+      calls.push(api('/doses/upcoming?limit=10'));
+    }
+    const [todayRes, upcomingRes] = await Promise.all(calls);
+    currentDoses = todayRes.data || [];
+    if (upcomingRes) {
+      currentUpcomingDoses = upcomingRes.data || [];
+    } else {
+      currentUpcomingDoses = currentDoses.filter(d => d.status === 'pending' || d.status === 'snoozed');
+    }
     renderDoses();
   } catch (err) {
     showMessage(err.message, true);
@@ -211,7 +255,7 @@ async function loadDoses() {
 
 function renderDoses() {
   const labels = { pending: 'Pendiente', taken: 'Tomada', snoozed: 'Pospuesta', missed: 'Omitida' };
-  const list = document.querySelector('#dose-list');
+  const list = q('#dose-list');
 
   list.innerHTML = currentDoses.length
     ? currentDoses.map(dose => {
@@ -246,37 +290,95 @@ function renderDoses() {
     acc[dose.status] = (acc[dose.status] || 0) + 1;
     return acc;
   }, {});
-  document.querySelector('#taken-count').textContent = counts.taken || 0;
-  document.querySelector('#pending-count').textContent = (counts.pending || 0) + (counts.snoozed || 0);
-  document.querySelector('#missed-count').textContent = counts.missed || 0;
+  q('#taken-count').textContent = counts.taken || 0;
+  q('#pending-count').textContent = (counts.pending || 0) + (counts.snoozed || 0);
+  q('#missed-count').textContent = counts.missed || 0;
 
-  const next = currentDoses.find(dose => dose.status === 'pending' || dose.status === 'snoozed');
-  const card = document.querySelector('#next-dose-card');
+  // Próxima dosis en general (mostrada en el banner superior)
+  const next = currentUpcomingDoses[0];
+  const card = q('#next-dose-card');
   if (next) {
     const nextMedName = unescapeHtml(next.medication_name);
     const nextDosage = unescapeHtml(next.dosage);
-    document.querySelector('#next-dose-title').textContent = nextMedName;
-    const nextTimeStr = formatTime(next.scheduled_at);
+    q('#next-dose-title').textContent = nextMedName;
+    const formattedSchedule = formatScheduleDateTime(next.scheduled_at);
+
+    const schedDate = new Date(next.scheduled_at);
+    const today = new Date();
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetDateOnly = new Date(schedDate.getFullYear(), schedDate.getMonth(), schedDate.getDate());
+    const diffDays = Math.round((targetDateOnly - todayDateOnly) / (1000 * 60 * 60 * 24));
+
     if (next.is_due) {
-      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · ¡Es hora de tomarla!`;
+      q('#next-dose-detail').textContent = `${nextDosage} · ¡Es hora de tomarla!`;
     } else if (next.status === 'snoozed') {
-      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · pospuesta hasta las ${nextTimeStr}`;
+      q('#next-dose-detail').textContent = `${nextDosage} · pospuesta hasta las ${formatTime(next.scheduled_at)}`;
+    } else if (diffDays === 0) {
+      q('#next-dose-detail').textContent = `${nextDosage} · programada para hoy`;
+    } else if (diffDays === 1) {
+      q('#next-dose-detail').textContent = `${nextDosage} · programada para mañana`;
     } else {
-      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · programada para hoy`;
+      q('#next-dose-detail').textContent = `${nextDosage} · programada para el ${formattedSchedule}`;
     }
-    document.querySelector('#next-dose-time').textContent = nextTimeStr;
+    q('#next-dose-time').textContent = formattedSchedule;
   } else {
-    document.querySelector('#next-dose-title').textContent = 'Todo al día por ahora';
-    document.querySelector('#next-dose-detail').textContent = 'Tus próximas tomas aparecerán aquí.';
-    document.querySelector('#next-dose-time').innerHTML = ico('check', 'h-8 w-8');
+    q('#next-dose-title').textContent = 'Todo al día por ahora';
+    q('#next-dose-detail').textContent = 'Tus próximas tomas aparecerán aquí.';
+    q('#next-dose-time').innerHTML = ico('check', 'h-8 w-8');
+  }
+
+  // Siguientes dosis a consumir en general (las 3 más próximas sin contar la del banner)
+  const followingContainer = document.querySelector('#following-doses-list');
+  if (followingContainer) {
+    const followingDoses = currentUpcomingDoses.slice(1, 4);
+    followingContainer.innerHTML = followingDoses.length
+      ? followingDoses.map(dose => {
+          const timeStr = formatScheduleDateTime(dose.scheduled_at);
+          const isPendingOrSnoozed = dose.status === 'pending' || dose.status === 'snoozed';
+          const canTake = isPendingOrSnoozed && (dose.can_take !== undefined ? dose.can_take : false);
+          const actionBtn = canTake
+            ? `<button class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-brand px-4 text-sm font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" type="button" data-take-dose="${dose.id}" title="Marcar esta dosis como tomada">${ico('check', 'h-4 w-4')}Tomar</button>`
+            : '';
+          const st = DOSE_STYLES[dose.status] || DOSE_STYLES.pending;
+          return `
+            <article class="flex flex-col justify-between rounded-3xl p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${st.box}">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-2 font-serif text-lg font-semibold leading-none">
+                    <span class="grid h-8 w-8 place-items-center rounded-full ${st.icon}">${ico(st.name, 'h-4 w-4')}</span>
+                    ${timeStr}
+                  </span>
+                  <span class="rounded-full px-3 py-0.5 text-xs font-bold ${st.badge}">${labels[dose.status] || dose.status}</span>
+                </div>
+                <div class="my-4 min-w-0">
+                  <strong class="block text-lg font-bold leading-snug [overflow-wrap:anywhere]">${escapeHtml(dose.medication_name)}</strong>
+                  <span class="block text-sm text-muted [overflow-wrap:anywhere]">${escapeHtml(dose.dosage)}</span>
+                </div>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 border-t border-line/60 pt-3">
+                ${actionBtn}
+                <button class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-bold text-brand-dark shadow-sm transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30" type="button" data-dose-details="${dose.id}">
+                  ${ico('info', 'h-4 w-4')}Detalles
+                </button>
+              </div>
+            </article>
+          `;
+        }).join('')
+      : `
+        <div class="col-span-full rounded-3xl bg-white p-7 text-center shadow-soft">
+          <span class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-[#f1f5f1] text-brand-dark">${ico('check', 'h-6 w-6')}</span>
+          <p class="font-serif text-lg font-semibold text-ink">Sin más tomas pendientes</p>
+          <p class="mt-1 text-sm text-muted">No hay más medicamentos programados a continuación.</p>
+        </div>
+      `;
   }
 
   const alertDose = currentDoses.find(dose => dose.is_due);
-  const alert = document.querySelector('#dose-alert');
+  const alert = q('#dose-alert');
   if (alertDose) {
-    document.querySelector('#alert-title').textContent = `${unescapeHtml(alertDose.medication_name)} · ${unescapeHtml(alertDose.dosage)}`;
+    q('#alert-title').textContent = `${unescapeHtml(alertDose.medication_name)} · ${unescapeHtml(alertDose.dosage)}`;
     const mins = alertDose.minutes_left ?? 0;
-    document.querySelector('#alert-detail').textContent = `Tómala antes de ${mins} ${mins === 1 ? 'minuto' : 'minutos'} o se marcará como omitida.`;
+    q('#alert-detail').textContent = `Tómala antes de ${mins} ${mins === 1 ? 'minuto' : 'minutos'} o se marcará como omitida.`;
     alert.dataset.doseId = alertDose.id;
     alert.classList.remove('hidden');
     alert.classList.add('flex');
@@ -287,9 +389,10 @@ function renderDoses() {
 }
 
 async function loadMedications() {
+  if (!['medicamentos', 'tratamientos'].includes(PAGE())) return;
   const items = (await api('/medications')).data || [];
   currentMedications = items;
-  document.querySelector('#medication-list').innerHTML = items.length
+  q('#medication-list').innerHTML = items.length
     ? items.map(item => {
         const low = item.stock <= 5;
         return `
@@ -307,14 +410,15 @@ async function loadMedications() {
       }).join('')
     : `<div class="${EMPTY_CLASS}">Añade tu primer medicamento.</div>`;
 
-  document.querySelector('#medication-select').innerHTML = items.map(item => `
+  q('#medication-select').innerHTML = items.map(item => `
     <option value="${item.id}">${escapeHtml(item.name)}</option>
   `).join('');
 }
 
 async function loadTreatments() {
+  if (PAGE() !== 'tratamientos') return;
   const items = (await api('/treatments?active=true')).data || [];
-  document.querySelector('#treatment-list').innerHTML = items.length
+  q('#treatment-list').innerHTML = items.length
     ? items.map(item => `
         <article class="flex items-start gap-4 rounded-3xl bg-[#eef5f9] p-4 transition hover:shadow-soft sm:p-5">
           <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#cfe3ee] text-[#2f5d75]">${ico('clipboard', 'h-6 w-6')}</span>
@@ -329,59 +433,42 @@ async function loadTreatments() {
     : `<div class="${EMPTY_CLASS}">Crea una pauta para verla aquí.</div>`;
 }
 
-const TAB_ACTIVE = ['bg-brand', 'text-white', 'shadow'];
-const TAB_IDLE = ['text-muted', 'hover:bg-brand-mint', 'hover:text-brand-dark'];
-
-function setTab(name) {
-  const tabs = [...document.querySelectorAll('[data-tab]')];
-  const available = tabs.find(t => t.dataset.tab === name && !t.classList.contains('hidden'));
-  const current = available ? name : 'agenda';
-  tabs.forEach(tab => {
-    const active = tab.dataset.tab === current;
-    tab.setAttribute('aria-selected', active);
-    tab.classList.remove(...TAB_ACTIVE, ...TAB_IDLE);
-    tab.classList.add(...(active ? TAB_ACTIVE : TAB_IDLE));
-  });
-  document.querySelectorAll('[data-tab-panel]').forEach(panel => {
-    panel.classList.toggle('hidden', panel.id !== `tab-${current}`);
-  });
-}
-
 function openDoseDetails(doseId) {
-  const dose = currentDoses.find(d => String(d.id) === String(doseId));
+  const dose = currentDoses.find(d => String(d.id) === String(doseId))
+            || currentUpcomingDoses.find(d => String(d.id) === String(doseId));
   if (!dose) return;
-  document.querySelector('#details-title').textContent = unescapeHtml(dose.medication_name);
-  document.querySelector('#details-sub').textContent = `${unescapeHtml(dose.dosage)} · ${formatTime(dose.scheduled_at)}`;
+  q('#details-title').textContent = unescapeHtml(dose.medication_name);
+  q('#details-sub').textContent = `${unescapeHtml(dose.dosage)} · ${formatScheduleDateTime(dose.scheduled_at)}`;
   [['#details-notes', dose.notes, 'Sin nota registrada.'], ['#details-instructions', dose.instructions, 'Sin indicaciones registradas.']].forEach(([sel, value, empty]) => {
-    const node = document.querySelector(sel);
+    const node = q(sel);
     const text = unescapeHtml(value).trim();
     node.textContent = text || empty;
     node.classList.toggle('italic', !text);
     node.classList.toggle('text-muted', !text);
   });
-  openModal(document.querySelector('#details-modal'));
+  openModal(q('#details-modal'));
 }
 
 function openMedicationEdit(medicationId) {
   const med = currentMedications.find(m => String(m.id) === String(medicationId));
   if (!med) return;
-  document.querySelector('#edit-med-id').value = med.id;
-  document.querySelector('#edit-med-name').textContent = unescapeHtml(med.name);
-  document.querySelector('#edit-med-stock').value = med.stock;
-  document.querySelector('#edit-med-notes').value = unescapeHtml(med.notes);
-  openModal(document.querySelector('#medication-edit-modal'));
+  q('#edit-med-id').value = med.id;
+  q('#edit-med-name').textContent = unescapeHtml(med.name);
+  q('#edit-med-stock').value = med.stock;
+  q('#edit-med-notes').value = unescapeHtml(med.notes);
+  openModal(q('#medication-edit-modal'));
 }
 
 async function submitMedicationEdit(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const id = document.querySelector('#edit-med-id').value;
+  const id = q('#edit-med-id').value;
   try {
     await api(`/medications/${id}`, {
       method: 'PUT',
       body: JSON.stringify({
-        stock: Number(document.querySelector('#edit-med-stock').value),
-        notes: document.querySelector('#edit-med-notes').value.trim() || null
+        stock: Number(q('#edit-med-stock').value),
+        notes: q('#edit-med-notes').value.trim() || null
       })
     });
     closeModal(form.closest('.modal'));
@@ -417,11 +504,9 @@ async function deleteTreatment(button) {
 async function loadAdminSummary() {
   try {
     const summary = (await api('/admin/summary')).data;
-    document.querySelector('#admin-users').textContent = summary.users;
-    document.querySelector('#admin-medications').textContent = summary.medications;
-    document.querySelector('#admin-treatments').textContent = summary.treatments;
-    document.querySelector('#admin-tab').classList.remove('hidden');
-    setTab(localStorage.getItem('meditrack-tab') || 'agenda');
+    q('#admin-users').textContent = summary.users;
+    q('#admin-medications').textContent = summary.medications;
+    q('#admin-treatments').textContent = summary.treatments;
   } catch (err) {
     showMessage(err.message, true);
   }
@@ -475,7 +560,7 @@ async function submitTreatment(event) {
 }
 
 async function decideDose(button) {
-  const alert = document.querySelector('#dose-alert');
+  const alert = q('#dose-alert');
   const doseId = alert.dataset.doseId;
   if (!doseId) return;
   try {
@@ -506,41 +591,40 @@ document.addEventListener('DOMContentLoaded', () => {
   if (login) {
     login.addEventListener('submit', handleLogin);
     register.addEventListener('submit', handleRegister);
-    document.querySelector('#show-register').addEventListener('click', () => toggleAuthForm(true));
-    document.querySelector('#show-login').addEventListener('click', () => toggleAuthForm(false));
+    q('#show-register').addEventListener('click', () => toggleAuthForm(true));
+    q('#show-login').addEventListener('click', () => toggleAuthForm(false));
+    if (location.hash === '#registro') toggleAuthForm(true);
   }
 
   if (document.body.classList.contains('app-page')) {
-    document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', () => { localStorage.setItem('meditrack-tab', tab.dataset.tab); setTab(tab.dataset.tab); }));
-    setTab(localStorage.getItem('meditrack-tab') || 'agenda');
     loadDashboard();
 
-    document.querySelector('#refresh-button').addEventListener('click', async () => {
+    q('#refresh-button').addEventListener('click', async () => {
       await Promise.all([loadDoses(), loadMedications()]);
       showMessage('Agenda actualizada');
     });
 
-    document.querySelector('#logout-button').addEventListener('click', async () => {
+    q('#logout-button').addEventListener('click', async () => {
       try {
         await api('/sessions/logout', { method: 'POST' });
       } catch (err) {
         // En caso de falla de red, redirigir igualmente
       }
-      location.href = '/';
+      location.href = '/login';
     });
 
-    document.querySelector('#profile-button').addEventListener('click', () => {
-      document.querySelector('#profile-name').value = document.querySelector('#user-name').textContent;
-      openModal(document.querySelector('#profile-modal'));
+    q('#profile-button').addEventListener('click', () => {
+      q('#profile-name').value = q('#user-name').textContent;
+      openModal(q('#profile-modal'));
     });
 
-    document.querySelector('#profile-form').addEventListener('submit', submitProfile);
-    document.querySelector('#medication-form').addEventListener('submit', submitMedication);
-    document.querySelector('#treatment-form').addEventListener('submit', submitTreatment);
-    document.querySelector('#medication-edit-form').addEventListener('submit', submitMedicationEdit);
+    q('#profile-form').addEventListener('submit', submitProfile);
+    q('#medication-form').addEventListener('submit', submitMedication);
+    q('#treatment-form').addEventListener('submit', submitTreatment);
+    q('#medication-edit-form').addEventListener('submit', submitMedicationEdit);
 
     document.querySelectorAll('[data-modal]').forEach(btn => {
-      btn.addEventListener('click', () => openModal(document.querySelector(`#${btn.dataset.modal}`)));
+      btn.addEventListener('click', () => openModal(q(`#${btn.dataset.modal}`)));
     });
 
     document.querySelectorAll('[data-close]').forEach(btn => {

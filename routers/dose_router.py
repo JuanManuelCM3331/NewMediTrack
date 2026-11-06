@@ -6,7 +6,11 @@ from core.dependencies import get_current_user
 from models import User
 from schemas.common_schema import ApiResponse
 from schemas.dose_schema import DoseDecisionResponse, DoseOut
-from services.dose_service import decide_dose as execute_dose_decision, get_today_schedule
+from services.dose_service import (
+    decide_dose as execute_dose_decision,
+    get_today_schedule,
+    get_upcoming_schedule,
+)
 
 router = APIRouter(prefix="/doses", tags=["Dosis"])
 
@@ -19,6 +23,17 @@ def today_doses(
     """Consulta la agenda completa de dosis del usuario para la jornada de hoy."""
     data = get_today_schedule(db, user.id)
     return ApiResponse(success=True, data=data, message="Agenda del día")
+
+
+@router.get("/upcoming", response_model=ApiResponse[list[DoseOut]])
+def upcoming_doses(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Consulta las próximas dosis a consumir en general (hoy y días posteriores)."""
+    data = get_upcoming_schedule(db, user.id, limit=limit)
+    return ApiResponse(success=True, data=data, message="Próximas dosis a consumir")
 
 
 @router.post("/{dose_id}/decision", response_model=ApiResponse[DoseDecisionResponse])

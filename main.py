@@ -148,17 +148,42 @@ async def generic_error_handler(request: Request, exc: Exception):
 # ============================================================================
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def landing_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/landing.html", context={})
+
+
+@app.get("/login", response_class=HTMLResponse, include_in_schema=False)
 async def login_page(request: Request):
     return templates.TemplateResponse(
         request=request,
-        name="login.html",
+        name="pages/login.html",
         context={"show_demo_hint": settings.is_development},
     )
 
 
 @app.get("/app", response_class=HTMLResponse, include_in_schema=False)
-async def dashboard_page(request: Request):
-    return templates.TemplateResponse(request=request, name="dashboard.html", context={})
+async def panel_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/panel.html", context={})
+
+
+@app.get("/app/agenda", response_class=HTMLResponse, include_in_schema=False)
+async def agenda_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/agenda.html", context={})
+
+
+@app.get("/app/medicamentos", response_class=HTMLResponse, include_in_schema=False)
+async def medications_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/medicamentos.html", context={})
+
+
+@app.get("/app/tratamientos", response_class=HTMLResponse, include_in_schema=False)
+async def treatments_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/tratamientos.html", context={})
+
+
+@app.get("/app/resumen", response_class=HTMLResponse, include_in_schema=False)
+async def summary_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/resumen.html", context={})
 
 
 # ============================================================================

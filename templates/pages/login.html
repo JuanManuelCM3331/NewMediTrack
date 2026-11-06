@@ -1,35 +1,12 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MediTrack | Tu salud, a tiempo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          boxShadow: { soft: '0 10px 30px -8px rgba(24,60,50,.14)', lift: '0 16px 40px -10px rgba(24,60,50,.22)' },
-          fontFamily: { sans: ['"DM Sans"', 'sans-serif'], serif: ['Fraunces', 'serif'] },
-          colors: {
-            ink: '#1b2d31', muted: '#4f6165', paper: '#eaf0e8', line: '#c9d6cd',
-            brand: { DEFAULT: '#237a62', dark: '#185b4a', mint: '#d9f1e4' },
-            sun: { DEFAULT: '#f8e5a4', deep: '#e0aa45' },
-            coral: { DEFAULT: '#ed816d', dark: '#a54b40' }
-          }
-        }
-      }
-    }
-  </script>
-</head>
-<body class="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#e3efe3] via-paper to-[#f4eed9] font-sans text-ink antialiased">
+{% extends "layouts/base.html" %}
+{% block title %}MediTrack | Iniciar sesión{% endblock %}
+{% block body_class %}bg-gradient-to-br from-[#e3efe3] via-paper to-[#f4eed9]{% endblock %}
+{% block body %}
   <main class="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:gap-16 lg:py-12">
     <section class="min-w-0">
-      <div class="inline-flex items-center gap-3 text-xl font-bold text-brand-dark">
+      <a href="/" class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark">
         <span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow-md"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack
-      </div>
+      </a>
       <p class="mb-3 mt-10 text-sm font-bold uppercase tracking-widest text-brand lg:mt-24">Cuidado que acompaña</p>
       <h1 class="mb-6 font-serif text-5xl font-semibold leading-tight sm:text-6xl lg:text-7xl">Tu tratamiento,<br><em class="not-italic text-brand">en buenas manos.</em></h1>
       <p class="max-w-md text-lg leading-relaxed text-muted sm:text-xl">Organiza tus medicamentos y recibe un aviso justo cuando toca cuidarte.</p>
@@ -70,6 +47,4 @@
       </form>
     </section>
   </main>
-  <script src="/static/app.js?v=10"></script>
-</body>
-</html>
+{% endblock %}

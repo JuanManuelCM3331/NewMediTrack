@@ -155,6 +155,45 @@ def get_today_schedule(db: Session, user_id: int) -> list[dict]:
     return data
 
 
+def get_upcoming_schedule(db: Session, user_id: int, limit: int = 10) -> list[dict]:
+    """Obtiene las próximas dosis a consumir en general (hoy y días posteriores), hasta alcanzar el límite."""
+    today = get_app_today()
+    tz = get_app_timezone()
+
+    # 1. Obtener y actualizar el estado dinámico de las dosis de hoy
+    today_doses = get_today_schedule(db, user_id)
+    # Filtrar las pendientes o pospuestas de hoy
+    upcoming: list[dict] = [d for d in today_doses if d["status"] in {"pending", "snoozed"}]
+
+    # 2. Si se necesitan más para alcanzar el límite, buscar en días posteriores
+    if len(upcoming) < limit:
+        for day_offset in range(1, 61):
+            if len(upcoming) >= limit:
+                break
+            future_date = today + timedelta(days=day_offset)
+            future_doses = ensure_due_doses(db, user_id, for_date=future_date)
+            for dose in future_doses:
+                if dose.status in {"pending", "snoozed"}:
+                    iso_scheduled = dose.scheduled_at.replace(tzinfo=tz).isoformat()
+                    upcoming.append({
+                        "id": dose.id,
+                        "treatment_id": dose.treatment_id,
+                        "medication_name": dose.treatment.medication.name if (dose.treatment and dose.treatment.medication) else "Desconocido",
+                        "dosage": dose.treatment.dosage if dose.treatment else "",
+                        "notes": dose.treatment.medication.notes if (dose.treatment and dose.treatment.medication) else None,
+                        "instructions": dose.treatment.instructions if dose.treatment else None,
+                        "scheduled_at": iso_scheduled,
+                        "status": dose.status,
+                        "minutes_left": None,
+                        "is_due": False,
+                        "can_take": False,
+                    })
+                    if len(upcoming) >= limit:
+                        break
+
+    return upcoming[:limit]
+
+
 def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple[dict, str]:
     """Ejecuta la decisión sobre una dosis (tomada o pospuesta) y sincroniza existencias."""
     dose = db.scalar(

@@ -72,3 +72,11 @@ def test_dedicated_doses_router_endpoints(client):
     assert dec_body["success"] is True
     assert dec_body["data"]["status"] == "taken"
     assert dec_body["data"]["medication_stock"] == 19
+
+    # 3. Probar GET /api/doses/upcoming (dosis a consumir en general, incluyendo días siguientes)
+    up_res = client.get("/api/doses/upcoming?limit=5", headers={"Authorization": f"Bearer {token}"})
+    assert up_res.status_code == 200
+    up_body = up_res.json()
+    assert up_body["success"] is True
+    assert isinstance(up_body["data"], list)
+    assert len(up_body["data"]) >= 1

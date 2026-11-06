@@ -1,0 +1,19 @@
+{% extends "layouts/app.html" %}
+{% set active_page = "resumen" %}
+{% block title %}MediTrack | Resumen{% endblock %}
+{% block content %}
+    <section class="rounded-[2rem] bg-[#f6f0fd] p-5 shadow-soft sm:p-8">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eadff7] text-[#684c8b]"><i data-icon="shield" class="h-6 w-6"></i></span>
+          <div><p class="text-sm font-bold uppercase tracking-widest text-[#684c8b]">Administración</p><h2 class="font-serif text-3xl font-semibold leading-tight">Resumen</h2></div>
+        </div>
+        <span class="rounded-full bg-[#eadff7] px-3 py-1.5 text-sm font-bold text-[#684c8b]">Admin</span>
+      </div>
+      <div class="grid gap-3 text-center sm:grid-cols-3">
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-users" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Usuarios</span></div>
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-medications" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Medicamentos</span></div>
+        <div class="rounded-2xl bg-white p-5"><strong id="admin-treatments" class="block font-serif text-4xl text-[#684c8b]">0</strong><span class="text-base font-semibold text-muted">Tratamientos</span></div>
+      </div>
+    </section>
+{% endblock %}
