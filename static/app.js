@@ -1,6 +1,3 @@
-const tokenKey = 'meditrack_token';
-const userKey = 'meditrack_user';
-
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
   return String(text)
@@ -17,18 +14,23 @@ function formatTime(isoString) {
   return isNaN(date.getTime()) ? '--:--' : date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Cliente API con soporte nativo para Cookies HttpOnly seguras
 const api = async (path, options = {}) => {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = localStorage.getItem(tokenKey);
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(`/api${path}`, { ...options, headers });
+  const response = await fetch(`/api${path}`, {
+    ...options,
+    headers,
+    credentials: 'same-origin', // Envía cookies HttpOnly automáticamente en el mismo origen
+  });
   const body = await response.json().catch(() => ({ message: 'Respuesta inválida del servidor' }));
   if (response.status === 401) {
-    localStorage.removeItem(tokenKey);
-    localStorage.removeItem(userKey);
-    if (!location.pathname.endsWith('/')) location.href = '/';
+    if (!location.pathname.endsWith('/')) {
+      location.href = '/';
+    }
   }
-  if (!response.ok) throw new Error(body.message || body.detail || 'No se pudo completar la operación');
+  if (!response.ok) {
+    throw new Error(body.message || body.detail || 'No se pudo completar la operación');
+  }
   return body;
 };
 
@@ -51,12 +53,11 @@ async function handleLogin(event) {
   button.disabled = true;
   button.innerHTML = 'Ingresando... <span>•</span>';
   try {
-    const body = await api('/sessions', {
+    await api('/sessions', {
       method: 'POST',
       body: JSON.stringify({ email: form.email.value, password: form.password.value })
     });
-    localStorage.setItem(tokenKey, body.data.access_token);
-    localStorage.setItem(userKey, JSON.stringify(body.data.user));
+    // El token de autenticación se gestiona en Cookie HttpOnly (inmune a XSS)
     location.href = '/app';
   } catch (err) {
     error.textContent = err.message;
@@ -75,12 +76,10 @@ async function handleRegister(event) {
   button.disabled = true;
   button.innerHTML = 'Creando cuenta... <span>•</span>';
   try {
-    const body = await api('/users', {
+    await api('/users', {
       method: 'POST',
       body: JSON.stringify({ full_name: form.full_name.value, email: form.email.value, password: form.password.value })
     });
-    localStorage.setItem(tokenKey, body.data.access_token);
-    localStorage.setItem(userKey, JSON.stringify(body.data.user));
     location.href = '/app';
   } catch (err) {
     error.textContent = err.message;
@@ -97,12 +96,19 @@ function toggleAuthForm(showRegister) {
 let currentDoses = [];
 
 async function loadDashboard() {
-  const user = JSON.parse(localStorage.getItem(userKey) || '{}');
-  if (!localStorage.getItem(tokenKey)) {
+  try {
+    // Validar sesión contra el servidor (no confía en localStorage)
+    const res = await api('/users/me');
+    const user = res.data;
+    renderUser(user);
+    if (user.role === 'admin') {
+      loadAdminSummary();
+    }
+  } catch (err) {
     location.href = '/';
     return;
   }
-  renderUser(user);
+
   const date = new Date();
   document.querySelector('#today-date').textContent = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
   document.querySelector('#day-name').textContent = date.toLocaleDateString('es-CO', { weekday: 'long' }).toUpperCase();
@@ -124,7 +130,6 @@ async function submitProfile(event) {
       method: 'PUT',
       body: JSON.stringify({ full_name: form.full_name.value })
     });
-    localStorage.setItem(userKey, JSON.stringify(body.data));
     renderUser(body.data);
     form.closest('.modal').classList.remove('open');
     showMessage('Nombre actualizado correctamente');
@@ -177,7 +182,6 @@ function renderDoses() {
   document.querySelector('#pending-count').textContent = (counts.pending || 0) + (counts.snoozed || 0);
   document.querySelector('#missed-count').textContent = counts.missed || 0;
 
-  // Próxima dosis: la más inmediata que esté pendiente o pospuesta
   const next = currentDoses.find(dose => dose.status === 'pending' || dose.status === 'snoozed');
   const card = document.querySelector('#next-dose-card');
   if (next) {
@@ -197,7 +201,6 @@ function renderDoses() {
     document.querySelector('#next-dose-time').textContent = '✓';
   }
 
-  // Alerta flotante: se activa ÚNICAMENTE si hay una dosis activa en este momento (is_due)
   const alertDose = currentDoses.find(dose => dose.is_due);
   const alert = document.querySelector('#dose-alert');
   if (alertDose) {
@@ -238,7 +241,7 @@ async function loadTreatments() {
         <div class="treatment-item">
           <div>
             <strong>${escapeHtml(item.medication_name)}</strong>
-            <span>${escapeHtml(item.dosage)} · ${(item.schedule_times || []).join(', ')}</span>
+            <span>${escapeHtml(item.dosage)} · ${(item.schedule_times || []).map(t => escapeHtml(t)).join(', ')}</span>
           </div>
           <span class="stock">${item.duration_days} días</span>
           <button class="delete-button" type="button" data-delete-treatment="${item.id}" title="Eliminar tratamiento" aria-label="Eliminar tratamiento de ${escapeHtml(item.medication_name)}">Eliminar</button>
@@ -335,7 +338,6 @@ async function decideDose(button) {
   try {
     const res = await api(`/treatments/doses/${doseId}/decision?decision=${button.dataset.decision}`, { method: 'POST' });
     alert.classList.remove('visible');
-    // Actualizamos tanto la agenda de dosis como la lista de medicamentos para reflejar el stock
     await Promise.all([loadDoses(), loadMedications()]);
     showMessage(res.message || (button.dataset.decision === 'taken' ? 'Dosis registrada como tomada' : 'Dosis pospuesta 10 minutos'));
   } catch (err) {
@@ -364,23 +366,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (document.body.classList.contains('app-page')) {
-    const user = JSON.parse(localStorage.getItem(userKey) || '{}');
-    renderUser(user);
     loadDashboard();
-    if (user.role === 'admin') loadAdminSummary();
 
     document.querySelector('#refresh-button').addEventListener('click', async () => {
       await Promise.all([loadDoses(), loadMedications()]);
       showMessage('Agenda actualizada');
     });
 
-    document.querySelector('#logout-button').addEventListener('click', () => {
-      localStorage.clear();
+    document.querySelector('#logout-button').addEventListener('click', async () => {
+      try {
+        await api('/sessions/logout', { method: 'POST' });
+      } catch (err) {
+        // En caso de falla de red, redirigir igualmente
+      }
       location.href = '/';
     });
 
     document.querySelector('#profile-button').addEventListener('click', () => {
-      document.querySelector('#profile-name').value = user.full_name || '';
+      document.querySelector('#profile-name').value = document.querySelector('#user-name').textContent;
       document.querySelector('#profile-modal').classList.add('open');
     });
 

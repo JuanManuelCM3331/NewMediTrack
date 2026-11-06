@@ -1,3 +1,4 @@
+import html
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -10,9 +11,17 @@ class MedicationCreate(BaseModel):
     @field_validator("name", "presentation")
     @classmethod
     def text_is_not_blank(cls, value: str) -> str:
-        if not value.strip():
+        cleaned = value.strip()
+        if not cleaned:
             raise ValueError("Este campo no puede estar vacío")
-        return value.strip()
+        return html.escape(cleaned)
+
+    @field_validator("notes")
+    @classmethod
+    def sanitize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return html.escape(value.strip())
 
 
 class MedicationUpdate(BaseModel):
@@ -20,6 +29,23 @@ class MedicationUpdate(BaseModel):
     presentation: str | None = Field(default=None, min_length=2, max_length=80)
     stock: int | None = Field(default=None, ge=0, le=100000)
     notes: str | None = Field(default=None, max_length=500)
+
+    @field_validator("name", "presentation")
+    @classmethod
+    def text_is_not_blank_optional(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Este campo no puede estar vacío")
+        return html.escape(cleaned)
+
+    @field_validator("notes")
+    @classmethod
+    def sanitize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return html.escape(value.strip())
 
 
 class MedicationOut(BaseModel):

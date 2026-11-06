@@ -25,10 +25,12 @@
         <label for="email">Correo electrónico</label>
         <input id="email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required>
         <label for="password">Contraseña</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Mínimo 8 caracteres" required minlength="8">
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Mínimo 8 caracteres" required minlength="8" maxlength="72">
         <div id="login-error" class="form-error" role="alert"></div>
         <button id="login-button" class="button button-primary button-wide" type="submit">Entrar a MediTrack <span>→</span></button>
-        <p class="demo-hint">Demo: <strong>demo@meditrack.app</strong> · <strong>MediTrack123!</strong></p>
+        {% if show_demo_hint %}
+        <p class="demo-hint">Entorno local · Demo: <strong>demo@meditrack.app</strong> · <strong>MediTrack123!</strong></p>
+        {% endif %}
         <p class="auth-switch">¿Aún no tienes cuenta? <button type="button" id="show-register">Crear una cuenta</button></p>
       </form>
       <form id="register-form" class="auth-card form-hidden">
@@ -40,13 +42,13 @@
         <label for="register-email">Correo electrónico</label>
         <input id="register-email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required>
         <label for="register-password">Contraseña</label>
-        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required minlength="8" maxlength="128">
+        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Entre 8 y 72 caracteres" required minlength="8" maxlength="72">
         <div id="register-error" class="form-error" role="alert"></div>
         <button id="register-button" class="button button-primary button-wide" type="submit">Crear cuenta <span>→</span></button>
         <p class="auth-switch">¿Ya tienes una cuenta? <button type="button" id="show-login">Iniciar sesión</button></p>
       </form>
     </section>
   </main>
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>

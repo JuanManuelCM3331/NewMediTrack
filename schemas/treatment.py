@@ -1,4 +1,5 @@
 from datetime import date
+import html
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -10,6 +11,18 @@ class TreatmentCreate(BaseModel):
     start_date: date
     duration_days: int = Field(gt=0, le=3650)
     instructions: str | None = Field(default=None, max_length=500)
+
+    @field_validator("dosage")
+    @classmethod
+    def sanitize_dosage(cls, value: str) -> str:
+        return html.escape(value.strip())
+
+    @field_validator("instructions")
+    @classmethod
+    def sanitize_instructions(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return html.escape(value.strip())
 
     @field_validator("schedule_times")
     @classmethod
@@ -30,6 +43,20 @@ class TreatmentUpdate(BaseModel):
     duration_days: int | None = Field(default=None, gt=0, le=3650)
     instructions: str | None = Field(default=None, max_length=500)
     active: bool | None = None
+
+    @field_validator("dosage")
+    @classmethod
+    def sanitize_dosage(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return html.escape(value.strip())
+
+    @field_validator("instructions")
+    @classmethod
+    def sanitize_instructions(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return html.escape(value.strip())
 
     @field_validator("schedule_times")
     @classmethod

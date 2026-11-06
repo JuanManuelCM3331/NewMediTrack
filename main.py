@@ -7,11 +7,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import inspect, select, text
 
 from crud import create_user
 from database import Base, SessionLocal, engine
 from models import User
+from rate_limiter import limiter
 from routers import admin, auth, medications, sessions, treatments
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -19,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("meditrack")
 
 app = FastAPI(title="MediTrack", version="1.0.0", description="Agenda personal de medicamentos y tratamientos")
+app.state.limiter = limiter
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
@@ -49,6 +52,14 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 	return JSONResponse(status_code=422, content={"success": False, "data": None, "message": "Revisa los datos enviados", "errors": errors})
 
 
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+	return JSONResponse(
+		status_code=429,
+		content={"success": False, "data": None, "message": "Demasiadas solicitudes. Por favor, intenta de nuevo más tarde."}
+	)
+
+
 @app.exception_handler(Exception)
 async def generic_error_handler(request: Request, exc: Exception):
 	logger.exception("Unhandled application error", exc_info=exc)
@@ -70,21 +81,27 @@ def startup():
 	except Exception as err:
 		logger.warning("Error al verificar migración de columnas: %s", err)
 
-	db = SessionLocal()
-	try:
-		demo_email = os.getenv("DEMO_EMAIL")
-		demo_password = os.getenv("DEMO_PASSWORD")
-		if demo_email and demo_password and not db.scalar(select(User).where(User.email == demo_email.lower())):
-			create_user(db, demo_email, os.getenv("DEMO_NAME", "María MediTrack"), demo_password, "admin")
-		elif not demo_email or not demo_password:
-			logger.warning("DEMO_EMAIL y DEMO_PASSWORD no están definidas; se omite el usuario demo")
-	finally:
-		db.close()
+	# Control de seguridad: solo sembrar usuario demo si está en entorno de desarrollo
+	is_dev = os.getenv("ENVIRONMENT", "development").lower() == "development"
+	if is_dev:
+		db = SessionLocal()
+		try:
+			demo_email = os.getenv("DEMO_EMAIL")
+			demo_password = os.getenv("DEMO_PASSWORD")
+			if demo_email and demo_password and not db.scalar(select(User).where(User.email == demo_email.lower())):
+				create_user(db, demo_email, os.getenv("DEMO_NAME", "María MediTrack"), demo_password, "admin")
+			elif not demo_email or not demo_password:
+				logger.warning("DEMO_EMAIL y DEMO_PASSWORD no están definidas; se omite el usuario demo")
+		finally:
+			db.close()
+	else:
+		logger.info("Entorno no es desarrollo: se omite la creación del usuario demo por seguridad")
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def login_page(request: Request):
-	return templates.TemplateResponse(request=request, name="login.html", context={})
+	is_dev = os.getenv("ENVIRONMENT", "development").lower() == "development"
+	return templates.TemplateResponse(request=request, name="login.html", context={"show_demo_hint": is_dev})
 
 
 @app.get("/app", response_class=HTMLResponse, include_in_schema=False)
