@@ -4,6 +4,7 @@ from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+from time_utils import get_app_now_naive
 
 
 class Treatment(Base):
@@ -18,7 +19,7 @@ class Treatment(Base):
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_app_now_naive, nullable=False)
 
     owner = relationship("User", back_populates="treatments")
     medication = relationship("Medication", back_populates="treatments")

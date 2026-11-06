@@ -66,3 +66,4 @@ class DoseOut(BaseModel):
     scheduled_at: str
     status: str
     minutes_left: int | None = None
+    is_due: bool = False

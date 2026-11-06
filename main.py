@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 
 from crud import create_user
 from database import Base, SessionLocal, engine
@@ -58,6 +58,18 @@ async def generic_error_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def startup():
 	Base.metadata.create_all(bind=engine)
+	# Verificación y migración automática de columnas para bases existentes
+	try:
+		insp = inspect(engine)
+		if "doses" in insp.get_table_names():
+			cols = [c["name"] for c in insp.get_columns("doses")]
+			if "created_at" not in cols:
+				with engine.connect() as conn:
+					conn.execute(text("ALTER TABLE doses ADD COLUMN created_at DATETIME"))
+					conn.commit()
+	except Exception as err:
+		logger.warning("Error al verificar migración de columnas: %s", err)
+
 	db = SessionLocal()
 	try:
 		demo_email = os.getenv("DEMO_EMAIL")

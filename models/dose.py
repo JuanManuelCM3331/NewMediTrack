@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+from time_utils import get_app_now_naive
 
 
 class Dose(Base):
@@ -15,6 +16,7 @@ class Dose(Base):
     scheduled_at: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_app_now_naive, nullable=False)
 
     user = relationship("User", back_populates="doses")
     treatment = relationship("Treatment", back_populates="doses")

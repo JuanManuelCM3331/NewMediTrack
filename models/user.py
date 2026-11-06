@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+from time_utils import get_app_now_naive
 
 ROLE_ADMIN = "admin"
 ROLE_USER = "user"
@@ -18,7 +19,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=ROLE_USER, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_app_now_naive, nullable=False)
 
     medications = relationship("Medication", back_populates="owner", cascade="all, delete-orphan")
     treatments = relationship("Treatment", back_populates="owner", cascade="all, delete-orphan")

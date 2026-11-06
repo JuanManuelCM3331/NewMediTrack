@@ -6,6 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from models import Dose, Medication, Treatment, User, ROLE_USER
+from time_utils import get_app_now_naive, get_app_today
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -57,24 +59,73 @@ def list_treatments(db: Session, user_id: int, active: bool | None = None) -> li
 
 
 def serialize_treatment(treatment: Treatment) -> dict:
-    return {"id": treatment.id, "medication_id": treatment.medication_id, "medication_name": treatment.medication.name, "dosage": treatment.dosage, "schedule_times": json.loads(treatment.schedule_times), "start_date": treatment.start_date, "duration_days": treatment.duration_days, "instructions": treatment.instructions, "active": treatment.active}
+    try:
+        schedule = json.loads(treatment.schedule_times)
+    except (json.JSONDecodeError, TypeError):
+        schedule = []
+    return {
+        "id": treatment.id,
+        "medication_id": treatment.medication_id,
+        "medication_name": treatment.medication.name if treatment.medication else "Desconocido",
+        "dosage": treatment.dosage,
+        "schedule_times": schedule,
+        "start_date": treatment.start_date,
+        "duration_days": treatment.duration_days,
+        "instructions": treatment.instructions,
+        "active": treatment.active,
+    }
 
 
 def ensure_due_doses(db: Session, user_id: int, for_date: date | None = None) -> list[Dose]:
-    day = for_date or date.today()
-    current_time = datetime.now()
+    day = for_date or get_app_today()
+    now = get_app_now_naive()
     treatments = list_treatments(db, user_id, active=True)
+    
     for treatment in treatments:
         end_date = treatment.start_date + timedelta(days=treatment.duration_days - 1)
-        if not treatment.start_date <= day <= end_date:
+        if not (treatment.start_date <= day <= end_date):
             continue
-        for scheduled_time in json.loads(treatment.schedule_times):
-            hour, minute = (int(part) for part in scheduled_time.split(":"))
-            scheduled_at = datetime.combine(day, time(hour, minute))
-            if scheduled_at > current_time:
+        try:
+            times = json.loads(treatment.schedule_times)
+        except (json.JSONDecodeError, TypeError):
+            continue
+            
+        for scheduled_time in times:
+            parts = scheduled_time.split(":")
+            if len(parts) != 2:
                 continue
-            existing = db.scalar(select(Dose).where(Dose.treatment_id == treatment.id, Dose.scheduled_at == scheduled_at))
+            hour, minute = int(parts[0]), int(parts[1])
+            scheduled_at = datetime.combine(day, time(hour, minute))
+            
+            existing = db.scalar(
+                select(Dose).where(
+                    Dose.treatment_id == treatment.id,
+                    Dose.scheduled_at == scheduled_at
+                )
+            )
             if not existing:
-                db.add(Dose(user_id=user_id, treatment_id=treatment.id, scheduled_at=scheduled_at, status="pending"))
+                db.add(
+                    Dose(
+                        user_id=user_id,
+                        treatment_id=treatment.id,
+                        scheduled_at=scheduled_at,
+                        status="pending",
+                        created_at=now,
+                    )
+                )
     db.commit()
-    return list(db.scalars(select(Dose).options(joinedload(Dose.treatment).joinedload(Treatment.medication)).where(Dose.user_id == user_id, Dose.scheduled_at >= datetime.combine(day, time.min), Dose.scheduled_at < datetime.combine(day + timedelta(days=1), time.min)).order_by(Dose.scheduled_at)))
+    
+    start_of_day = datetime.combine(day, time.min)
+    end_of_day = datetime.combine(day + timedelta(days=1), time.min)
+    return list(
+        db.scalars(
+            select(Dose)
+            .options(joinedload(Dose.treatment).joinedload(Treatment.medication))
+            .where(
+                Dose.user_id == user_id,
+                Dose.scheduled_at >= start_of_day,
+                Dose.scheduled_at < end_of_day,
+            )
+            .order_by(Dose.scheduled_at)
+        )
+    )
