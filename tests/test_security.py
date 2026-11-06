@@ -1,6 +1,10 @@
 import pytest
+from pydantic import ValidationError
 from tests.conftest import TestingSessionLocal
-from rate_limiter import limiter
+from core.config import Settings
+from core.rate_limiter import limiter
+from core.security import hash_password
+from models import User
 
 
 def test_stored_xss_sanitization_in_medication_and_user(client):
@@ -122,3 +126,62 @@ def test_rate_limiting_on_login(client):
 
     limiter.reset()
     limiter.enabled = False
+
+
+def test_inactive_user_cannot_login(client):
+    """Verifica que una cuenta desactivada (is_active=False) no pueda iniciar sesión."""
+    db = TestingSessionLocal()
+    inactive_user = User(
+        email="inactive@test.com",
+        full_name="Usuario Inactivo",
+        password_hash=hash_password("ValidPass123!"),
+        role="user",
+        is_active=False,
+    )
+    db.add(inactive_user)
+    db.commit()
+    db.close()
+
+    res = client.post(
+        "/api/sessions",
+        json={"email": "inactive@test.com", "password": "ValidPass123!"},
+    )
+    assert res.status_code == 401
+    assert "meditrack_token" not in res.cookies
+
+
+def test_no_double_html_escaping_on_repeated_updates(client):
+    """Verifica que actualizar un nombre con caracteres especiales no duplique entidades HTML (&amp;amp;)."""
+    reg_res = client.post(
+        "/api/users",
+        json={
+            "email": "special@test.com",
+            "full_name": "María & José",
+            "password": "Password123!",
+        },
+    )
+    assert reg_res.status_code == 201
+    token = reg_res.json()["data"]["access_token"]
+    saved_name = reg_res.json()["data"]["user"]["full_name"]
+    assert saved_name == "María &amp; José"
+
+    # Enviar el valor ya escapado en una actualización no debe producir &amp;amp;
+    upd_res = client.put(
+        "/api/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"full_name": saved_name},
+    )
+    assert upd_res.status_code == 200
+    assert upd_res.json()["data"]["full_name"] == "María &amp; José"
+
+
+def test_security_headers_and_production_secret_validation(client):
+    """Verifica las cabeceras HTTP de seguridad y el bloqueo de SECRET_KEY débil en producción."""
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.headers.get("X-Content-Type-Options") == "nosniff"
+    assert res.headers.get("X-Frame-Options") == "DENY"
+    assert res.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+    with pytest.raises(ValidationError):
+        Settings(environment="production", secret_key="meditrack-local-7f4b9d2c8a1e6f3b5d7c9a2e4f6b8d1c")

@@ -11,7 +11,7 @@ class MedicationCreate(BaseModel):
     @field_validator("name", "presentation")
     @classmethod
     def text_is_not_blank(cls, value: str) -> str:
-        cleaned = value.strip()
+        cleaned = html.unescape(value).strip()
         if not cleaned:
             raise ValueError("Este campo no puede estar vacío")
         return html.escape(cleaned)
@@ -21,7 +21,7 @@ class MedicationCreate(BaseModel):
     def sanitize_notes(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return html.escape(value.strip())
+        return html.escape(html.unescape(value).strip())
 
 
 class MedicationUpdate(BaseModel):
@@ -35,7 +35,7 @@ class MedicationUpdate(BaseModel):
     def text_is_not_blank_optional(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
+        cleaned = html.unescape(value).strip()
         if not cleaned:
             raise ValueError("Este campo no puede estar vacío")
         return html.escape(cleaned)
@@ -45,7 +45,7 @@ class MedicationUpdate(BaseModel):
     def sanitize_notes(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return html.escape(value.strip())
+        return html.escape(html.unescape(value).strip())
 
 
 class MedicationOut(BaseModel):

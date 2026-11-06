@@ -22,7 +22,7 @@ class RegisterRequest(BaseModel):
     @field_validator("full_name")
     @classmethod
     def sanitize_name(cls, value: str) -> str:
-        cleaned = value.strip()
+        cleaned = html.unescape(value).strip()
         if not cleaned:
             raise ValueError("El nombre no puede estar vacío")
         return html.escape(cleaned)
@@ -41,7 +41,7 @@ class UserUpdate(BaseModel):
     @field_validator("full_name")
     @classmethod
     def sanitize_updated_name(cls, value: str) -> str:
-        cleaned = value.strip()
+        cleaned = html.unescape(value).strip()
         if not cleaned:
             raise ValueError("El nombre no puede estar vacío")
         return html.escape(cleaned)

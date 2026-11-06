@@ -3,9 +3,9 @@ from datetime import date, datetime, time, timedelta
 
 import pytest
 from tests.conftest import TestingSessionLocal
-from dependencies import create_access_token
+from core.security import create_access_token
+from core.time_utils import get_app_now_naive, get_app_today, get_app_timezone
 from models import Dose, Medication, Treatment, User
-from time_utils import get_app_now_naive, get_app_today, get_app_timezone
 
 
 def create_test_user_and_token():
@@ -168,6 +168,7 @@ def test_snooze_reschedules_and_reactivates(client):
 
     res_agenda = client.get("/api/treatments/schedule/today", headers={"Authorization": f"Bearer {token}"})
     agenda_doses = res_agenda.json()["data"]
+    assert len(agenda_doses) == 1
     snoozed_dose = [d for d in agenda_doses if d["id"] == dose_id][0]
     assert snoozed_dose["status"] == "pending"
     assert snoozed_dose["is_due"] is True

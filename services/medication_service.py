@@ -20,7 +20,8 @@ def list_medications(
         .limit(limit)
     )
     if search:
-        query = query.where(Medication.name.ilike(f"%{search}%"))
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(Medication.name.ilike(f"%{escaped}%", escape="\\"))
     return list(db.scalars(query))
 
 

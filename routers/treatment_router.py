@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.dependencies import get_current_user
-from models import Medication, Treatment, User
+from models import User
 from schemas.common_schema import ApiResponse, EmptyResponse
 from schemas.dose_schema import DoseDecisionResponse, DoseOut
 from schemas.treatment_schema import TreatmentCreate, TreatmentOut, TreatmentUpdate
 from services.dose_service import decide_dose as execute_dose_decision, get_today_schedule
+from services.medication_service import get_medication as service_get_medication
 from services.treatment_service import (
     create_treatment as service_create_treatment,
     delete_treatment as service_delete_treatment,
@@ -26,8 +27,8 @@ def create_treatment(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    medication = db.get(Medication, payload.medication_id)
-    if not medication or medication.owner_id != user.id:
+    medication = service_get_medication(db, payload.medication_id, user.id)
+    if not medication:
         raise HTTPException(status_code=404, detail="El medicamento seleccionado no existe")
     treatment = service_create_treatment(db, user.id, medication, payload)
     return ApiResponse(success=True, data=serialize_treatment(treatment), message="Tratamiento creado")
@@ -68,13 +69,7 @@ def decide_dose_legacy(
     if decision not in {"taken", "snoozed"}:
         raise HTTPException(status_code=422, detail="La decisión debe ser taken o snoozed")
 
-    try:
-        data, message = execute_dose_decision(db, user.id, dose_id, decision)
-    except ValueError as err:
-        err_msg = str(err)
-        status_code = 404 if "no encontrada" in err_msg else 409
-        raise HTTPException(status_code=status_code, detail=err_msg)
-
+    data, message = execute_dose_decision(db, user.id, dose_id, decision)
     return ApiResponse(success=True, data=data, message=message)
 
 
@@ -97,8 +92,8 @@ def update_treatment(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    treatment = db.get(Treatment, treatment_id)
-    if not treatment or treatment.owner_id != user.id:
+    treatment = service_get_treatment(db, treatment_id, user.id)
+    if not treatment:
         raise HTTPException(status_code=404, detail="Tratamiento no encontrado")
     updated = service_update_treatment(db, treatment, payload)
     return ApiResponse(success=True, data=serialize_treatment(updated), message="Tratamiento actualizado")
@@ -110,8 +105,8 @@ def delete_treatment(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    treatment = db.get(Treatment, treatment_id)
-    if not treatment or treatment.owner_id != user.id:
+    treatment = service_get_treatment(db, treatment_id, user.id)
+    if not treatment:
         raise HTTPException(status_code=404, detail="Tratamiento no encontrado")
     service_delete_treatment(db, treatment)
     return EmptyResponse(success=True, data=None, message="Tratamiento eliminado")

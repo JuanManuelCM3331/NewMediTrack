@@ -16,14 +16,17 @@ class TreatmentCreate(BaseModel):
     @field_validator("dosage")
     @classmethod
     def sanitize_dosage(cls, value: str) -> str:
-        return html.escape(value.strip())
+        cleaned = html.unescape(value).strip()
+        if not cleaned:
+            raise ValueError("La dosis no puede estar vacía")
+        return html.escape(cleaned)
 
     @field_validator("instructions")
     @classmethod
     def sanitize_instructions(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return html.escape(value.strip())
+        return html.escape(html.unescape(value).strip())
 
     @field_validator("schedule_times")
     @classmethod
@@ -50,14 +53,17 @@ class TreatmentUpdate(BaseModel):
     def sanitize_dosage(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return html.escape(value.strip())
+        cleaned = html.unescape(value).strip()
+        if not cleaned:
+            raise ValueError("La dosis no puede estar vacía")
+        return html.escape(cleaned)
 
     @field_validator("instructions")
     @classmethod
     def sanitize_instructions(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return html.escape(value.strip())
+        return html.escape(html.unescape(value).strip())
 
     @field_validator("schedule_times")
     @classmethod

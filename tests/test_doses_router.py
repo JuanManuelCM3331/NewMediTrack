@@ -1,8 +1,8 @@
 import json
 from tests.conftest import TestingSessionLocal
-from dependencies import create_access_token
+from core.security import create_access_token
+from core.time_utils import get_app_now_naive, get_app_today
 from models import Dose, Medication, Treatment, User
-from time_utils import get_app_now_naive, get_app_today
 
 
 def create_test_user_and_token():

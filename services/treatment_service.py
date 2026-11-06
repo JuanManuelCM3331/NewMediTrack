@@ -1,8 +1,8 @@
 import json
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
 
-from models import Medication, Treatment
+from models import Dose, Medication, Treatment
 from schemas.treatment_schema import TreatmentCreate, TreatmentUpdate
 
 
@@ -59,10 +59,22 @@ def create_treatment(db: Session, user_id: int, medication: Medication, payload:
 
 def update_treatment(db: Session, treatment: Treatment, payload: TreatmentUpdate) -> Treatment:
     values = payload.model_dump(exclude_unset=True)
-    if "schedule_times" in values:
+    schedule_updated = "schedule_times" in values
+    if schedule_updated:
         treatment.schedule_times = json.dumps(values.pop("schedule_times"))
     for key, value in values.items():
         setattr(treatment, key, value)
+
+    if schedule_updated:
+        # Limpiar dosis pendientes sin decisión previa para regenerar según el nuevo horario
+        db.execute(
+            delete(Dose).where(
+                Dose.treatment_id == treatment.id,
+                Dose.status == "pending",
+                Dose.decided_at.is_(None),
+            )
+        )
+
     db.commit()
     db.refresh(treatment)
     treatment.medication = db.get(Medication, treatment.medication_id)

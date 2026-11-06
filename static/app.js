@@ -1,6 +1,17 @@
-function escapeHtml(text) {
+function unescapeHtml(text) {
   if (text === null || text === undefined) return '';
   return String(text)
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return unescapeHtml(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -116,10 +127,11 @@ async function loadDashboard() {
 }
 
 function renderUser(user) {
-  document.querySelector('#user-name').textContent = user.full_name || 'Usuario';
+  const fullName = unescapeHtml(user.full_name) || 'Usuario';
+  document.querySelector('#user-name').textContent = fullName;
   document.querySelector('#user-role').textContent = user.role === 'admin' ? 'Administrador' : 'Usuario estándar';
-  document.querySelector('#welcome-name').textContent = (user.full_name || 'amigo').split(' ')[0];
-  document.querySelector('#user-avatar').textContent = (user.full_name || 'M').charAt(0).toUpperCase();
+  document.querySelector('#welcome-name').textContent = (fullName || 'amigo').split(' ')[0];
+  document.querySelector('#user-avatar').textContent = (fullName || 'M').charAt(0).toUpperCase();
 }
 
 async function submitProfile(event) {
@@ -140,7 +152,7 @@ async function submitProfile(event) {
 
 async function loadDoses() {
   try {
-    const res = await api('/treatments/schedule/today');
+    const res = await api('/doses/today');
     currentDoses = res.data || [];
     renderDoses();
   } catch (err) {
@@ -185,14 +197,16 @@ function renderDoses() {
   const next = currentDoses.find(dose => dose.status === 'pending' || dose.status === 'snoozed');
   const card = document.querySelector('#next-dose-card');
   if (next) {
-    document.querySelector('#next-dose-title').textContent = next.medication_name;
+    const nextMedName = unescapeHtml(next.medication_name);
+    const nextDosage = unescapeHtml(next.dosage);
+    document.querySelector('#next-dose-title').textContent = nextMedName;
     const nextTimeStr = formatTime(next.scheduled_at);
     if (next.is_due) {
-      document.querySelector('#next-dose-detail').textContent = `${next.dosage} · ¡Es hora de tomarla!`;
+      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · ¡Es hora de tomarla!`;
     } else if (next.status === 'snoozed') {
-      document.querySelector('#next-dose-detail').textContent = `${next.dosage} · pospuesta hasta las ${nextTimeStr}`;
+      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · pospuesta hasta las ${nextTimeStr}`;
     } else {
-      document.querySelector('#next-dose-detail').textContent = `${next.dosage} · programada para hoy`;
+      document.querySelector('#next-dose-detail').textContent = `${nextDosage} · programada para hoy`;
     }
     document.querySelector('#next-dose-time').textContent = nextTimeStr;
   } else {
@@ -204,7 +218,7 @@ function renderDoses() {
   const alertDose = currentDoses.find(dose => dose.is_due);
   const alert = document.querySelector('#dose-alert');
   if (alertDose) {
-    document.querySelector('#alert-title').textContent = `${alertDose.medication_name} · ${alertDose.dosage}`;
+    document.querySelector('#alert-title').textContent = `${unescapeHtml(alertDose.medication_name)} · ${unescapeHtml(alertDose.dosage)}`;
     const mins = alertDose.minutes_left ?? 0;
     document.querySelector('#alert-detail').textContent = `Tómala antes de ${mins} ${mins === 1 ? 'minuto' : 'minutos'} o se marcará como omitida.`;
     alert.dataset.doseId = alertDose.id;
@@ -336,7 +350,7 @@ async function decideDose(button) {
   const doseId = alert.dataset.doseId;
   if (!doseId) return;
   try {
-    const res = await api(`/treatments/doses/${doseId}/decision?decision=${button.dataset.decision}`, { method: 'POST' });
+    const res = await api(`/doses/${doseId}/decision?decision=${button.dataset.decision}`, { method: 'POST' });
     alert.classList.remove('visible');
     await Promise.all([loadDoses(), loadMedications()]);
     showMessage(res.message || (button.dataset.decision === 'taken' ? 'Dosis registrada como tomada' : 'Dosis pospuesta 10 minutos'));
@@ -347,7 +361,7 @@ async function decideDose(button) {
 
 async function takeDoseInline(doseId) {
   try {
-    const res = await api(`/treatments/doses/${doseId}/decision?decision=taken`, { method: 'POST' });
+    const res = await api(`/doses/${doseId}/decision?decision=taken`, { method: 'POST' });
     await Promise.all([loadDoses(), loadMedications()]);
     showMessage(res.message || 'Dosis registrada como tomada');
   } catch (err) {

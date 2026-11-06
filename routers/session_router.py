@@ -23,6 +23,8 @@ def create_session(
     user = get_user_by_email(db, payload.email)
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="El correo o la contraseña no coinciden")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="La cuenta no está disponible")
 
     token_str = create_access_token(user)
 

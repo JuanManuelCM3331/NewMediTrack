@@ -8,12 +8,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import select
 
 from core.config import settings
 from core.database import SessionLocal, init_db
+from core.exceptions import DomainError
 from core.rate_limiter import limiter
-from models import User
 from routers import (
     admin_router,
     auth_router,
@@ -23,7 +22,7 @@ from routers import (
     treatment_router,
 )
 from schemas.common_schema import ApiResponse
-from services.user_service import create_user
+from services.user_service import create_user, get_user_by_email
 
 BASE_DIR = Path(__file__).resolve().parent
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +41,7 @@ def init_demo_user():
 
     db = SessionLocal()
     try:
-        exists = db.scalar(select(User).where(User.email == settings.demo_email.lower()))
+        exists = get_user_by_email(db, settings.demo_email)
         if not exists:
             create_user(
                 db,
@@ -81,18 +80,27 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Inyecta cabeceras de seguridad HTTP estándar en todas las respuestas."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
 # ============================================================================
 # Manejadores de Excepciones Estandarizados
 # ============================================================================
 
-class DomainError(Exception):
-    def __init__(self, detail: str):
-        self.detail = detail
-
-
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
-    return JSONResponse(status_code=422, content={"success": False, "data": None, "message": exc.detail})
+    return JSONResponse(
+        status_code=getattr(exc, "status_code", 422),
+        content={"success": False, "data": None, "message": exc.detail},
+    )
 
 
 @app.exception_handler(HTTPException)

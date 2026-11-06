@@ -5,6 +5,7 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from core.exceptions import ConflictError, NotFoundError
 from core.time_utils import get_app_now_naive, get_app_timezone, get_app_today
 from models import Dose, Treatment
 from schemas.dose_schema import DoseDecisionResponse, DoseOut
@@ -21,9 +22,11 @@ def parse_dosage_quantity(dosage_str: str) -> int:
 
 
 def ensure_due_doses(db: Session, user_id: int, for_date: date | None = None) -> list[Dose]:
-    """Garantiza que todas las dosis de la jornada existan en la base de datos."""
+    """Garantiza que todas las dosis de la jornada existan en la base de datos sin duplicar pospuestas."""
     day = for_date or get_app_today()
     now = get_app_now_naive()
+    start_of_day = datetime.combine(day, time.min)
+    end_of_day = datetime.combine(day + timedelta(days=1), time.min)
     treatments = list_treatments(db, user_id, active=True)
 
     for treatment in treatments:
@@ -35,20 +38,38 @@ def ensure_due_doses(db: Session, user_id: int, for_date: date | None = None) ->
         except (json.JSONDecodeError, TypeError):
             continue
 
+        scheduled_slots: list[datetime] = []
         for scheduled_time in times:
             parts = scheduled_time.split(":")
             if len(parts) != 2:
                 continue
             hour, minute = int(parts[0]), int(parts[1])
-            scheduled_at = datetime.combine(day, time(hour, minute))
+            scheduled_slots.append(datetime.combine(day, time(hour, minute)))
 
-            existing = db.scalar(
+        if not scheduled_slots:
+            continue
+
+        existing_day_doses = list(
+            db.scalars(
                 select(Dose).where(
                     Dose.treatment_id == treatment.id,
-                    Dose.scheduled_at == scheduled_at,
+                    Dose.scheduled_at >= start_of_day,
+                    Dose.scheduled_at < end_of_day,
                 )
             )
-            if not existing:
+        )
+
+        # Si ya existen todas las dosis del día para este tratamiento (incluyendo pospuestas), no duplicar
+        if len(existing_day_doses) >= len(scheduled_slots):
+            continue
+
+        existing_times = {d.scheduled_at for d in existing_day_doses}
+        missing_count = len(scheduled_slots) - len(existing_day_doses)
+
+        for scheduled_at in scheduled_slots:
+            if missing_count <= 0:
+                break
+            if scheduled_at not in existing_times:
                 db.add(
                     Dose(
                         user_id=user_id,
@@ -58,10 +79,10 @@ def ensure_due_doses(db: Session, user_id: int, for_date: date | None = None) ->
                         created_at=now,
                     )
                 )
+                existing_times.add(scheduled_at)
+                missing_count -= 1
     db.commit()
 
-    start_of_day = datetime.combine(day, time.min)
-    end_of_day = datetime.combine(day + timedelta(days=1), time.min)
     return list(
         db.scalars(
             select(Dose)
@@ -132,9 +153,9 @@ def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple
         .where(Dose.id == dose_id, Dose.user_id == user_id)
     )
     if not dose:
-        raise ValueError("Dosis no encontrada")
+        raise NotFoundError("Dosis no encontrada")
     if dose.status == "missed" and decision == "snoozed":
-        raise ValueError("No puedes posponer una dosis que ya fue omitida")
+        raise ConflictError("No puedes posponer una dosis que ya fue omitida")
 
     now = get_app_now_naive()
     medication = dose.treatment.medication if dose.treatment else None

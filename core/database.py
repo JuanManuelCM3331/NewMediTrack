@@ -1,15 +1,24 @@
 from collections.abc import Generator
 import logging
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from core.config import settings
 
 logger = logging.getLogger("meditrack.database")
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+is_sqlite = settings.database_url.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite else {}
 engine = create_engine(settings.database_url, connect_args=connect_args)
+
+if is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 

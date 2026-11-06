@@ -32,11 +32,5 @@ def decide_dose_endpoint(
     if decision not in {"taken", "snoozed"}:
         raise HTTPException(status_code=422, detail="La decisión debe ser taken o snoozed")
 
-    try:
-        data, message = execute_dose_decision(db, user.id, dose_id, decision)
-    except ValueError as err:
-        err_msg = str(err)
-        status_code = 404 if "no encontrada" in err_msg else 409
-        raise HTTPException(status_code=status_code, detail=err_msg)
-
+    data, message = execute_dose_decision(db, user.id, dose_id, decision)
     return ApiResponse(success=True, data=data, message=message)
