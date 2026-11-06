@@ -195,7 +195,7 @@ def get_upcoming_schedule(db: Session, user_id: int, limit: int = 10) -> list[di
 
 
 def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple[dict, str]:
-    """Ejecuta la decisión sobre una dosis (tomada o pospuesta) y sincroniza existencias."""
+    """Ejecuta la decisión sobre una dosis (tomada, pospuesta u omitida) y sincroniza existencias."""
     dose = db.scalar(
         select(Dose)
         .options(joinedload(Dose.treatment).joinedload(Treatment.medication))
@@ -203,20 +203,31 @@ def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple
     )
     if not dose:
         raise NotFoundError("Dosis no encontrada")
+    if dose.status == "taken":
+        raise ConflictError("Esta dosis ya fue registrada como tomada")
     if dose.status == "missed" and decision == "snoozed":
         raise ConflictError("No puedes posponer una dosis que ya fue omitida")
 
     now = get_app_now_naive()
+    diff_seconds = (now - dose.scheduled_at).total_seconds()
 
-    # Validación de ventana para tomar la dosis: 15 minutos antes y hasta 15 minutos después
-    if decision == "taken":
-        diff_seconds = (now - dose.scheduled_at).total_seconds()
-        if not (-15 * 60 <= diff_seconds <= 15 * 60):
-            if diff_seconds < -15 * 60:
-                mins_to_wait = int((-diff_seconds) // 60)
-                raise ConflictError(f"Aún es muy pronto para tomar esta dosis. Podrás tomarla 15 minutos antes de la hora (en {mins_to_wait} min).")
-            else:
-                raise ConflictError("El tiempo para tomar esta dosis ya expiró (más de 15 minutos después de la hora programada).")
+    # Validación: no se puede tomar, posponer ni marcar como no tomada si aún no está en el rango de tiempo
+    # (El rango comienza 15 minutos antes de la hora programada)
+    if diff_seconds < -15 * 60:
+        mins_to_wait = int((-diff_seconds) // 60)
+        action_verb = "tomar" if decision == "taken" else ("posponer" if decision == "snoozed" else "registrar como no tomada")
+        raise ConflictError(
+            f"Aún no estás en el rango de tiempo para {action_verb} este medicamento. "
+            f"Estará disponible 15 minutos antes de su hora programada (en {mins_to_wait} min)."
+        )
+
+    # Si ya expiró la ventana (más de 15 minutos después de la hora programada)
+    if diff_seconds > 15 * 60:
+        if decision == "taken":
+            raise ConflictError("El tiempo para tomar esta dosis ya expiró (más de 15 minutos después de la hora programada).")
+        elif decision == "snoozed":
+            raise ConflictError("El tiempo para posponer esta dosis ya expiró.")
+
     medication = dose.treatment.medication if dose.treatment else None
     qty = parse_dosage_quantity(dose.treatment.dosage) if dose.treatment else 1
 
@@ -240,7 +251,12 @@ def decide_dose(db: Session, user_id: int, dose_id: int, decision: str) -> tuple
     if medication:
         db.refresh(medication)
 
-    msg = "Dosis registrada como tomada" if decision == "taken" else "Dosis pospuesta 10 minutos"
+    if decision == "taken":
+        msg = "Dosis registrada como tomada"
+    elif decision == "snoozed":
+        msg = "Dosis pospuesta 10 minutos"
+    else:
+        msg = "Dosis registrada como no tomada"
     if decision == "taken" and medication:
         if medication.stock == 0:
             msg += f" (¡Existencias agotadas de {medication.name}!)"

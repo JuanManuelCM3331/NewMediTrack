@@ -4,7 +4,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from jose import jwt
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
@@ -30,27 +31,78 @@ logger = logging.getLogger("meditrack")
 
 
 def init_demo_user():
-    """Siembra el usuario demo solo en entornos de desarrollo."""
+    """Siembra los usuarios demo solo en entornos de desarrollo."""
     if not settings.is_development:
         logger.info("Entorno no es desarrollo: se omite la creación del usuario demo por seguridad")
         return
 
-    if not settings.demo_email or not settings.demo_password:
-        logger.warning("DEMO_EMAIL y DEMO_PASSWORD no están definidas; se omite el usuario demo")
-        return
-
     db = SessionLocal()
     try:
-        exists = get_user_by_email(db, settings.demo_email)
-        if not exists:
-            create_user(
-                db,
-                email=settings.demo_email,
-                full_name=settings.demo_name,
-                password=settings.demo_password,
-                role="admin",
-            )
-            logger.info("Usuario demo inicializado correctamente: %s", settings.demo_email)
+        # 1. Usuario Administrador Demo
+        if settings.demo_email and settings.demo_password:
+            admin_user = get_user_by_email(db, settings.demo_email)
+            if not admin_user:
+                admin_user = create_user(
+                    db,
+                    email=settings.demo_email,
+                    full_name=settings.demo_name,
+                    password=settings.demo_password,
+                    role="admin",
+                )
+                logger.info("Usuario demo admin inicializado correctamente: %s", settings.demo_email)
+            elif admin_user.role != "admin":
+                admin_user.role = "admin"
+                db.commit()
+
+        # 2. Usuario Regular Demo
+        if settings.demo_user_email and settings.demo_user_password:
+            regular_user = get_user_by_email(db, settings.demo_user_email)
+            if not regular_user:
+                regular_user = create_user(
+                    db,
+                    email=settings.demo_user_email,
+                    full_name=settings.demo_user_name,
+                    password=settings.demo_user_password,
+                    role="user",
+                )
+                logger.info("Usuario demo regular inicializado correctamente: %s", settings.demo_user_email)
+            elif regular_user.role != "user":
+                regular_user.role = "user"
+                db.commit()
+
+            # Sembrar medicamento y tratamiento inicial para pruebas si aún no tiene
+            import json
+            from core.time_utils import get_app_today
+            from models.medication_model import Medication
+            from models.treatment_model import Treatment
+
+            med_exists = db.query(Medication).filter(Medication.owner_id == regular_user.id).first()
+            if not med_exists:
+                med = Medication(
+                    owner_id=regular_user.id,
+                    name="Losartán",
+                    presentation="Tabletas 50 mg",
+                    stock=30,
+                    notes="Control de presión arterial",
+                )
+                db.add(med)
+                db.commit()
+                db.refresh(med)
+
+                today = get_app_today()
+                treatment = Treatment(
+                    owner_id=regular_user.id,
+                    medication_id=med.id,
+                    dosage="1 tableta",
+                    schedule_times=json.dumps(["08:00", "14:00", "20:00"]),
+                    start_date=today,
+                    duration_days=30,
+                    instructions="Tomar con abundante agua después de las comidas",
+                    active=True,
+                )
+                db.add(treatment)
+                db.commit()
+                logger.info("Medicamento y tratamiento de prueba creados para %s", settings.demo_user_email)
     finally:
         db.close()
 
@@ -157,8 +209,24 @@ async def login_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="pages/login.html",
-        context={"show_demo_hint": settings.is_development},
+        context={
+            "show_demo_hint": settings.is_development,
+            "demo_admin_email": settings.demo_email or "demo@meditrack.app",
+            "demo_admin_password": settings.demo_password or "MediTrack123!",
+            "demo_user_email": settings.demo_user_email or "user@meditrack.app",
+            "demo_user_password": settings.demo_user_password or "MediTrack123!",
+        },
     )
+
+
+@app.get("/app/selector", response_class=HTMLResponse, include_in_schema=False)
+async def selector_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/selector.html", context={})
+
+
+@app.get("/app/asistido", response_class=HTMLResponse, include_in_schema=False)
+async def assisted_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pages/asistido.html", context={})
 
 
 @app.get("/app", response_class=HTMLResponse, include_in_schema=False)
@@ -183,6 +251,21 @@ async def treatments_page(request: Request):
 
 @app.get("/app/resumen", response_class=HTMLResponse, include_in_schema=False)
 async def summary_page(request: Request):
+    token = request.cookies.get("meditrack_token")
+    if token:
+        try:
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            user_id = int(payload.get("sub", 0))
+            db = SessionLocal()
+            try:
+                from models.user_model import User
+                user = db.get(User, user_id)
+                if user and user.role != "admin":
+                    return RedirectResponse(url="/app", status_code=302)
+            finally:
+                db.close()
+        except Exception:
+            pass
     return templates.TemplateResponse(request=request, name="pages/resumen.html", context={})
 
 

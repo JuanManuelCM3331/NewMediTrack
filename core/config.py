@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     demo_password: str | None = Field(default="MediTrack123!")
     demo_name: str = Field(default="María MediTrack")
 
+    # Usuario Demo Regular (Solo para desarrollo)
+    demo_user_email: str | None = Field(default="user@meditrack.app")
+    demo_user_password: str | None = Field(default="MediTrack123!")
+    demo_user_name: str = Field(default="Carlos Gómez")
+
     # Testing flag
     testing: bool = Field(default=False)
 

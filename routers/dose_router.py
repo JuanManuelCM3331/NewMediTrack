@@ -39,13 +39,13 @@ def upcoming_doses(
 @router.post("/{dose_id}/decision", response_model=ApiResponse[DoseDecisionResponse])
 def decide_dose_endpoint(
     dose_id: int,
-    decision: str = Query(..., description="Decisión a aplicar: taken o snoozed"),
+    decision: str = Query(..., description="Decisión a aplicar: taken, snoozed o missed"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Registra la toma o posposición de una dosis y ajusta inventario de medicamentos."""
-    if decision not in {"taken", "snoozed"}:
-        raise HTTPException(status_code=422, detail="La decisión debe ser taken o snoozed")
+    """Registra la toma, posposición u omisión de una dosis y ajusta inventario de medicamentos."""
+    if decision not in {"taken", "snoozed", "missed"}:
+        raise HTTPException(status_code=422, detail="La decisión debe ser taken, snoozed o missed")
 
     data, message = execute_dose_decision(db, user.id, dose_id, decision)
     return ApiResponse(success=True, data=data, message=message)

@@ -6,10 +6,10 @@ from core.time_utils import get_app_now_naive, get_app_today
 from models import Dose, Medication, Treatment, User
 
 
-def create_test_user_and_token():
+def create_test_user_and_token(email: str = "dosesrouter@test.com"):
     db = TestingSessionLocal()
     user = User(
-        email="dosesrouter@test.com",
+        email=email,
         full_name="Doses Router User",
         password_hash="fakehash",
         role="user",
@@ -80,3 +80,59 @@ def test_dedicated_doses_router_endpoints(client):
     assert up_body["success"] is True
     assert isinstance(up_body["data"], list)
     assert len(up_body["data"]) >= 1
+
+
+def test_cannot_snooze_or_miss_future_dose_out_of_window(client):
+    """Verifica que una dosis que no está en el rango de tiempo no pueda tomarse, posponerse ni marcarse como no tomada."""
+    user_id, token = create_test_user_and_token("window_test@example.com")
+    db = TestingSessionLocal()
+    today = get_app_today()
+    now = get_app_now_naive()
+
+    med = Medication(owner_id=user_id, name="Ibuprofeno", presentation="Cápsula", stock=15)
+    db.add(med)
+    db.commit()
+    db.refresh(med)
+
+    # Dosis 4 horas en el futuro (fuera del rango de 15 min antes)
+    future_time_str = (now + timedelta(hours=4)).strftime("%H:%M")
+    treatment = Treatment(
+        owner_id=user_id,
+        medication_id=med.id,
+        dosage="1 cápsula",
+        schedule_times=json.dumps([future_time_str]),
+        start_date=today,
+        duration_days=2,
+        active=True,
+    )
+    db.add(treatment)
+    db.commit()
+
+    # Generar la dosis mediante la consulta de hoy
+    res = client.get("/api/doses/today", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    doses = res.json()["data"]
+    assert len(doses) == 1
+    future_dose_id = doses[0]["id"]
+    assert doses[0]["can_take"] is False
+
+    # 1. Intentar posponer la dosis futura -> debe ser rechazada con 409
+    snooze_res = client.post(
+        f"/api/doses/{future_dose_id}/decision?decision=snoozed",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert snooze_res.status_code == 409
+
+    # 2. Intentar marcar como no tomada la dosis futura -> debe ser rechazada con 409
+    miss_res = client.post(
+        f"/api/doses/{future_dose_id}/decision?decision=missed",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert miss_res.status_code == 409
+
+    # 3. Intentar tomar la dosis futura -> debe ser rechazada con 409
+    take_res = client.post(
+        f"/api/doses/{future_dose_id}/decision?decision=taken",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert take_res.status_code == 409

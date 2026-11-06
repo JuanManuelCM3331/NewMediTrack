@@ -21,7 +21,8 @@ const ICON_PATHS = {
   shield: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
   info: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z',
   home: 'M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
-  bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
+  bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+  user: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z'
 };
 const ico = (name, cls = 'h-5 w-5') =>
   `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true" class="shrink-0 ${cls}"><path stroke-linecap="round" stroke-linejoin="round" d="${ICON_PATHS[name] || ''}"/></svg>`;
@@ -193,9 +194,40 @@ async function loadDashboard() {
   }
 
   const page = PAGE();
-  if (page === 'resumen' && user.role !== 'admin') {
-    location.href = '/app';
-    return;
+
+  // Control según rol
+  if (user.role === 'admin') {
+    // Admin skipea el selector y no muestra botón de cambiar modo
+    if (page === 'selector') {
+      location.href = '/app';
+      return;
+    }
+    const switchBtn = document.querySelector('#switch-mode-btn');
+    if (switchBtn) switchBtn.classList.add('hidden');
+  } else {
+    // Usuario estándar: panel de resumen inaccesible
+    if (page === 'resumen') {
+      location.href = '/app';
+      return;
+    }
+
+    const savedMode = localStorage.getItem('meditrack_view_mode');
+
+    // Si ingresa al panel principal sin haber elegido modo previamente, dirigir al selector
+    if (page === 'panel' && !savedMode) {
+      location.href = '/app/selector';
+      return;
+    }
+
+    // Si guardó preferencia asistida y navega a /app, llevar a asistido
+    if (page === 'panel' && savedMode === 'asistido') {
+      location.href = '/app/asistido';
+      return;
+    }
+  }
+
+  if (page === 'selector') {
+    return; // No requiere cargar dosis ni agenda
   }
 
   const date = new Date();
@@ -235,9 +267,10 @@ async function submitProfile(event) {
 
 async function loadDoses() {
   try {
-    const isPanel = PAGE() === 'panel';
+    const page = PAGE();
+    const needsUpcoming = page === 'panel' || page === 'asistido';
     const calls = [api('/doses/today')];
-    if (isPanel) {
+    if (needsUpcoming) {
       calls.push(api('/doses/upcoming?limit=10'));
     }
     const [todayRes, upcomingRes] = await Promise.all(calls);
@@ -371,6 +404,10 @@ function renderDoses() {
           <p class="mt-1 text-sm text-muted">No hay más medicamentos programados a continuación.</p>
         </div>
       `;
+  }
+
+  if (PAGE() === 'asistido') {
+    renderAsistidoView();
   }
 
   const alertDose = currentDoses.find(dose => dose.is_due);
@@ -559,29 +596,165 @@ async function submitTreatment(event) {
   }
 }
 
-async function decideDose(button) {
-  const alert = q('#dose-alert');
-  const doseId = alert.dataset.doseId;
+function renderAsistidoView() {
+  const next = currentUpcomingDoses[0];
+  const heroContent = q('#asistido-hero-content');
+  const heroEmpty = q('#asistido-hero-empty');
+  const heroTime = q('#asistido-hero-time');
+  const heroTitle = q('#asistido-hero-title');
+  const heroDetail = q('#asistido-hero-detail');
+  const heroInstr = q('#asistido-hero-instructions');
+  const takeBtn = q('#asistido-take-btn');
+  const snoozeBtn = q('#asistido-snooze-btn');
+  const missBtn = q('#asistido-miss-btn');
+  const waitMsg = q('#asistido-hero-wait-msg');
+
+  if (next) {
+    heroContent.classList.remove('hidden');
+    heroEmpty.classList.add('hidden');
+    heroTime.textContent = formatScheduleDateTime(next.scheduled_at);
+    heroTitle.textContent = unescapeHtml(next.medication_name);
+
+    const canAct = Boolean(next.can_take);
+    let detailText = unescapeHtml(next.dosage);
+    if (next.is_due) {
+      detailText += ' · ¡Es hora de tu toma!';
+    } else if (next.status === 'snoozed') {
+      detailText += ' · Pospuesta';
+    } else if (canAct) {
+      detailText += ' · Dentro del horario de toma';
+    } else {
+      detailText += ' · Próxima dosis (en espera de horario)';
+    }
+    heroDetail.textContent = detailText;
+
+    const notesOrInstr = [unescapeHtml(next.instructions), unescapeHtml(next.notes)].filter(Boolean).join(' · ');
+    if (notesOrInstr) {
+      heroInstr.textContent = `Indicaciones: ${notesOrInstr}`;
+      heroInstr.classList.remove('hidden');
+    } else {
+      heroInstr.classList.add('hidden');
+    }
+
+    takeBtn.disabled = !canAct;
+    snoozeBtn.disabled = !canAct;
+    missBtn.disabled = !canAct;
+
+    takeBtn.dataset.doseId = next.id;
+    snoozeBtn.dataset.doseId = next.id;
+    missBtn.dataset.doseId = next.id;
+
+    if (waitMsg) {
+      if (!canAct) {
+        waitMsg.classList.remove('hidden');
+        takeBtn.title = 'Disponible 15 minutos antes de la hora';
+        snoozeBtn.title = 'Disponible 15 minutos antes de la hora';
+        missBtn.title = 'Disponible 15 minutos antes de la hora';
+      } else {
+        waitMsg.classList.add('hidden');
+        takeBtn.title = 'Marcar como tomada';
+        snoozeBtn.title = 'Posponer 10 minutos';
+        missBtn.title = 'Marcar como no tomada';
+      }
+    }
+  } else {
+    heroContent.classList.add('hidden');
+    heroEmpty.classList.remove('hidden');
+    heroTime.textContent = '✓ Al día';
+    if (waitMsg) waitMsg.classList.add('hidden');
+  }
+
+  const followingContainer = document.querySelector('#asistido-following-list');
+  if (followingContainer) {
+    const followingDoses = currentUpcomingDoses.slice(1, 6);
+    const labels = { pending: 'Pendiente', taken: 'Tomada', snoozed: 'Pospuesta', missed: 'Omitida' };
+    followingContainer.innerHTML = followingDoses.length
+      ? followingDoses.map(dose => {
+          const timeStr = formatScheduleDateTime(dose.scheduled_at);
+          const st = DOSE_STYLES[dose.status] || DOSE_STYLES.pending;
+          const notesOrInstr = [unescapeHtml(dose.instructions), unescapeHtml(dose.notes)].filter(Boolean).join(' · ');
+          const noteHtml = notesOrInstr
+            ? `<p class="mt-2 text-base text-muted [overflow-wrap:anywhere]">${ico('note', 'inline mr-1 h-4 w-4 text-brand')} ${escapeHtml(notesOrInstr)}</p>`
+            : '';
+          const canAct = Boolean(dose.can_take);
+          const actionHtml = canAct
+            ? `
+              <div class="flex flex-wrap gap-2.5 sm:flex-col">
+                <button type="button" data-asistido-action="taken" data-dose-id="${dose.id}" class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2 rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">
+                  ${ico('check', 'h-5 w-5')}Me la tomé
+                </button>
+                <button type="button" data-asistido-action="snoozed" data-dose-id="${dose.id}" class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2 rounded-full bg-[#fff2cb] px-5 text-base font-bold text-[#8a6416] transition hover:bg-[#fae4a7] focus:outline-none focus:ring-4 focus:ring-[#8a6416]/30">
+                  ${ico('clock', 'h-5 w-5')}Posponer
+                </button>
+                <button type="button" data-asistido-action="missed" data-dose-id="${dose.id}" class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2 rounded-full bg-[#fee2e2] px-5 text-base font-bold text-[#991b1b] transition hover:bg-[#fecaca] focus:outline-none focus:ring-4 focus:ring-[#991b1b]/30">
+                  ${ico('x', 'h-5 w-5')}No tomada
+                </button>
+              </div>
+            `
+            : `
+              <div class="flex items-center">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f1] px-4 py-2.5 text-sm font-semibold text-muted">
+                  ${ico('clock', 'h-4 w-4 text-brand')} Esperando horario
+                </span>
+              </div>
+            `;
+          return `
+            <article class="flex flex-col justify-between gap-4 rounded-[2rem] p-6 shadow-soft transition hover:shadow-lift sm:flex-row sm:items-center ${st.box}">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="inline-flex items-center gap-2 font-serif text-2xl font-bold leading-none text-ink">
+                    <span class="grid h-9 w-9 place-items-center rounded-full ${st.icon}">${ico(st.name, 'h-5 w-5')}</span>
+                    ${timeStr}
+                  </span>
+                  <span class="rounded-full px-3.5 py-1 text-sm font-bold ${st.badge}">${labels[dose.status] || dose.status}</span>
+                </div>
+                <strong class="mt-3 block text-2xl font-bold leading-snug [overflow-wrap:anywhere] text-ink">${escapeHtml(dose.medication_name)}</strong>
+                <p class="mt-0.5 text-lg font-semibold text-brand [overflow-wrap:anywhere]">${escapeHtml(dose.dosage)}</p>
+                ${noteHtml}
+              </div>
+              ${actionHtml}
+            </article>
+          `;
+        }).join('')
+      : `
+        <div class="rounded-3xl bg-white p-8 text-center shadow-soft">
+          <span class="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-brand-mint text-brand text-2xl">${ico('check', 'h-7 w-7')}</span>
+          <p class="font-serif text-2xl font-semibold text-ink">Sin más tomas por hoy</p>
+          <p class="mt-1 text-base text-muted">No tienes más dosis pendientes programadas a continuación.</p>
+        </div>
+      `;
+  }
+}
+
+async function decideDoseById(doseId, decision) {
   if (!doseId) return;
   try {
-    const res = await api(`/doses/${doseId}/decision?decision=${button.dataset.decision}`, { method: 'POST' });
-    alert.classList.add('hidden');
-    alert.classList.remove('flex');
+    const res = await api(`/doses/${doseId}/decision?decision=${decision}`, { method: 'POST' });
+    const alert = q('#dose-alert');
+    if (alert) {
+      alert.classList.add('hidden');
+      alert.classList.remove('flex');
+    }
     await Promise.all([loadDoses(), loadMedications()]);
-    showMessage(res.message || (button.dataset.decision === 'taken' ? 'Dosis registrada como tomada' : 'Dosis pospuesta 10 minutos'));
+    let defaultMsg = 'Dosis registrada';
+    if (decision === 'taken') defaultMsg = 'Dosis registrada como tomada';
+    else if (decision === 'snoozed') defaultMsg = 'Dosis pospuesta 10 minutos';
+    else if (decision === 'missed') defaultMsg = 'Dosis registrada como no tomada';
+    showMessage(res.message || defaultMsg);
   } catch (err) {
     showMessage(err.message, true);
   }
 }
 
+async function decideDose(button) {
+  const alert = q('#dose-alert');
+  const doseId = alert.dataset.doseId;
+  if (!doseId) return;
+  await decideDoseById(doseId, button.dataset.decision);
+}
+
 async function takeDoseInline(doseId) {
-  try {
-    const res = await api(`/doses/${doseId}/decision?decision=taken`, { method: 'POST' });
-    await Promise.all([loadDoses(), loadMedications()]);
-    showMessage(res.message || 'Dosis registrada como tomada');
-  } catch (err) {
-    showMessage(err.message, true);
-  }
+  await decideDoseById(doseId, 'taken');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -594,6 +767,82 @@ document.addEventListener('DOMContentLoaded', () => {
     q('#show-register').addEventListener('click', () => toggleAuthForm(true));
     q('#show-login').addEventListener('click', () => toggleAuthForm(false));
     if (location.hash === '#registro') toggleAuthForm(true);
+
+    // Botones para autorrellenar credenciales de prueba (admin y usuario)
+    document.querySelectorAll('[data-demo-email]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emailInput = document.querySelector('#email');
+        const passInput = document.querySelector('#password');
+        const err = document.querySelector('#login-error');
+        const notice = document.querySelector('#demo-fill-notice');
+        if (emailInput && passInput) {
+          emailInput.value = btn.dataset.demoEmail || '';
+          passInput.value = btn.dataset.demoPassword || '';
+          if (err) err.textContent = '';
+          emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+          passInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+          if (notice) {
+            notice.textContent = `Credenciales de ${btn.dataset.demoRole || 'prueba'} completadas`;
+            notice.className = 'mt-2.5 text-center text-xs font-semibold text-brand';
+          }
+
+          emailInput.classList.add('ring-2', 'ring-brand');
+          setTimeout(() => emailInput.classList.remove('ring-2', 'ring-brand'), 600);
+
+          const submitBtn = document.querySelector('#login-button');
+          if (submitBtn) submitBtn.focus();
+        }
+      });
+    });
+  }
+
+  // Botones de selección de modo (Adulto Mayor vs Cuidador)
+  document.querySelectorAll('[data-select-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.selectMode;
+      localStorage.setItem('meditrack_view_mode', mode);
+      if (mode === 'asistido') {
+        location.href = '/app/asistido';
+      } else {
+        location.href = '/app';
+      }
+    });
+  });
+
+  // Botones de acción directa en modo asistido
+  const asistidoTake = document.querySelector('#asistido-take-btn');
+  const asistidoSnooze = document.querySelector('#asistido-snooze-btn');
+  const asistidoMiss = document.querySelector('#asistido-miss-btn');
+  if (asistidoTake) {
+    asistidoTake.addEventListener('click', (e) => {
+      if (asistidoTake.disabled) {
+        showMessage('Aún no estás en el rango de tiempo para tomar este medicamento', true);
+        return;
+      }
+      const id = e.currentTarget.dataset.doseId;
+      if (id) decideDoseById(id, 'taken');
+    });
+  }
+  if (asistidoSnooze) {
+    asistidoSnooze.addEventListener('click', (e) => {
+      if (asistidoSnooze.disabled) {
+        showMessage('Aún no estás en el rango de tiempo para posponer este medicamento', true);
+        return;
+      }
+      const id = e.currentTarget.dataset.doseId;
+      if (id) decideDoseById(id, 'snoozed');
+    });
+  }
+  if (asistidoMiss) {
+    asistidoMiss.addEventListener('click', (e) => {
+      if (asistidoMiss.disabled) {
+        showMessage('Aún no estás en el rango de tiempo para este medicamento', true);
+        return;
+      }
+      const id = e.currentTarget.dataset.doseId;
+      if (id) decideDoseById(id, 'missed');
+    });
   }
 
   if (document.body.classList.contains('app-page')) {
@@ -636,6 +885,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('click', event => {
+      const asistidoActionBtn = event.target.closest('[data-asistido-action]');
+      if (asistidoActionBtn) {
+        decideDoseById(asistidoActionBtn.dataset.doseId, asistidoActionBtn.dataset.asistidoAction);
+        return;
+      }
+
       const takeInlineBtn = event.target.closest('[data-take-dose]');
       if (takeInlineBtn) {
         takeDoseInline(takeInlineBtn.dataset.takeDose);
