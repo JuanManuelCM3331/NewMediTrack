@@ -1,25 +1,7 @@
-import os
-from collections.abc import Generator
+"""Fachada de base de datos para compatibilidad retroactiva.
+Delega a core.database.
+"""
 
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from core.database import Base, SessionLocal, engine, get_db, init_db
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./meditrack.db")
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["Base", "SessionLocal", "engine", "get_db", "init_db"]

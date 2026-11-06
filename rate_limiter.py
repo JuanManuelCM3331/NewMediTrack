@@ -1,12 +1,7 @@
-import os
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+"""Fachada de limitador de tasa para compatibilidad retroactiva.
+Delega a core.rate_limiter.
+"""
 
-# Configuramos el limiter. Si estamos en modo de test (TESTING=1), se desactiva para no bloquear los tests.
-is_testing = os.getenv("TESTING", "0") == "1"
+from core.rate_limiter import limiter
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["120/minute"],
-    enabled=not is_testing,
-)
+__all__ = ["limiter"]

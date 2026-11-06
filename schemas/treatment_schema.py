@@ -2,6 +2,7 @@ from datetime import date
 import html
 
 from pydantic import BaseModel, Field, field_validator
+from schemas.dose_schema import DoseOut
 
 
 class TreatmentCreate(BaseModel):
@@ -83,14 +84,3 @@ class TreatmentOut(BaseModel):
     duration_days: int
     instructions: str | None
     active: bool
-
-
-class DoseOut(BaseModel):
-    id: int
-    treatment_id: int
-    medication_name: str
-    dosage: str
-    scheduled_at: str
-    status: str
-    minutes_left: int | None = None
-    is_due: bool = False
