@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+{% set active_page = "selector" %}
+{% block title %}MediTrack | Elige tu modo de uso{% endblock %}
+{% block body_class %}app-page bg-gradient-to-br from-[#e3efe3] via-paper to-[#f4eed9]{% endblock %}
+{% block body %}
+  <header class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-8">
+    <a class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark" href="/app">
+      <span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack
+    </a>
+    <div class="flex items-center gap-3">
+      <div class="grid h-11 w-11 place-items-center rounded-full bg-sun text-lg font-bold text-[#6b5314]" id="user-avatar">M</div>
+      <div class="hidden leading-tight sm:block">
+        <strong id="user-name" class="block text-base">Cargando...</strong>
+        <small id="user-role" class="text-sm text-muted">Usuario</small>
+      </div>
+      <button id="logout-button" class="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-ink shadow-sm transition hover:bg-[#ffe5df] hover:text-coral-dark focus:outline-none focus:ring-4 focus:ring-coral/30" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <i data-icon="logout" class="h-6 w-6"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-8 sm:px-8 sm:py-14">
+    <div class="mx-auto max-w-2xl text-center">
+      <span class="mb-3 inline-block rounded-full bg-brand-mint px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-brand-dark">Personaliza tu experiencia</span>
+      <h1 class="font-serif text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">¿Cómo deseas usar MediTrack?</h1>
+      <p class="mt-3 text-lg text-muted sm:text-xl">Selecciona el modo que prefieras. Podrás alternar entre ambos en cualquier momento desde tu cuenta.</p>
+    </div>
+
+    <div class="mt-10 grid gap-6 md:grid-cols-2 lg:gap-8">
+      <!-- Opción 1: Adulto Mayor (Modo Asistido) -->
+      <article class="flex flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:border-brand hover:shadow-lift sm:p-8">
+        <div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="rounded-full bg-brand-mint px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-brand-dark">Recomendado para el paciente</span>
+            <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eef8f2] text-brand">
+              <i data-icon="sparkles" class="h-6 w-6"></i>
+            </span>
+          </div>
+          <h2 class="mt-5 font-serif text-3xl font-semibold sm:text-4xl">Adulto Mayor</h2>
+          <p class="mt-1 text-base font-semibold text-brand">Modo Asistido y Sencillo</p>
+          <p class="mt-3 text-base leading-relaxed text-muted">
+            Diseñado especialmente para ser fácil y tranquilo. Letras más grandes, menos botones y acceso directo a tus dosis para confirmar con un solo toque.
+          </p>
+          <ul class="mt-6 space-y-3 border-t border-line/60 pt-5 text-base font-medium text-ink">
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Letras grandes y fácil lectura</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Botones directos: <strong>Me la tomé</strong>, <strong>Posponer</strong> o <strong>No me la tomé</strong></span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Sin menús confusos ni configuraciones difíciles</span>
+            </li>
+          </ul>
+        </div>
+        <div class="mt-8 pt-4">
+          <button type="button" data-select-mode="asistido" class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full bg-brand px-6 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">
+            Ingresar como Adulto Mayor <i data-icon="arrow" class="h-5 w-5"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Opción 2: Cuidador (Modo Completo) -->
+      <article class="flex flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:border-[#6c9ab5] hover:shadow-lift sm:p-8">
+        <div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="rounded-full bg-[#deedf4] px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#2f5d75]">Para gestión y apoyo</span>
+            <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eef5f9] text-[#2f5d75]">
+              <i data-icon="clipboard" class="h-6 w-6"></i>
+            </span>
+          </div>
+          <h2 class="mt-5 font-serif text-3xl font-semibold sm:text-4xl">Cuidador</h2>
+          <p class="mt-1 text-base font-semibold text-[#2f5d75]">Modo Completo</p>
+          <p class="mt-3 text-base leading-relaxed text-muted">
+            Panel completo con todas las herramientas para registrar medicamentos, crear pautas de tratamiento, revisar existencias y supervisar el cumplimiento.
+          </p>
+          <ul class="mt-6 space-y-3 border-t border-line/60 pt-5 text-base font-medium text-ink">
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Biblioteca de medicamentos y control de stock</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Creación y edición de pautas de tratamiento</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+              <span>Agenda diaria completa con métricas detalladas</span>
+            </li>
+          </ul>
+        </div>
+        <div class="mt-8 pt-4">
+          <button type="button" data-select-mode="cuidador" class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#28637c] px-6 text-lg font-bold text-white shadow-md transition hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+            Ingresar como Cuidador <i data-icon="arrow" class="h-5 w-5"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+  </main>
+{% endblock %}

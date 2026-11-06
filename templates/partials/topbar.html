@@ -1,0 +1,16 @@
+{# Barra superior del panel #}
+  <header class="sticky top-0 z-20 bg-white/90 shadow-soft backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
+      <a class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark" href="/app"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack</a>
+      <div class="flex items-center gap-2.5">
+        <a href="/app/selector" id="switch-mode-btn" class="inline-flex min-h-[48px] items-center gap-2 rounded-full border-2 border-line bg-white px-4 text-sm font-bold text-muted transition hover:border-brand hover:bg-brand-mint hover:text-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" title="Cambiar modo de uso">
+          <i data-icon="sparkles" class="h-4 w-4"></i>
+          <span class="max-md:hidden">Cambiar modo</span>
+        </a>
+        <div class="grid h-11 w-11 place-items-center rounded-full bg-sun text-lg font-bold text-[#6b5314]" id="user-avatar">M</div>
+        <div class="hidden leading-tight sm:block"><strong id="user-name" class="block text-base">Cargando...</strong><small id="user-role" class="text-sm text-muted">Usuario</small></div>
+        <button id="profile-button" class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand-mint px-5 text-base font-bold text-brand-dark transition hover:bg-brand hover:text-white focus:outline-none focus:ring-4 focus:ring-brand/30" type="button"><i data-icon="pencil" class="h-5 w-5"></i><span class="max-sm:hidden">Editar perfil</span><span class="sm:hidden">Perfil</span></button>
+        <button id="logout-button" class="grid h-12 w-12 place-items-center rounded-full bg-[#f1f5f1] text-ink transition hover:bg-[#ffe5df] hover:text-coral-dark focus:outline-none focus:ring-4 focus:ring-coral/30" title="Cerrar sesión" aria-label="Cerrar sesión"><i data-icon="logout" class="h-6 w-6"></i></button>
+      </div>
+    </div>
+  </header>

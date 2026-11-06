@@ -1,0 +1,91 @@
+{% extends "layouts/base.html" %}
+{% block title %}MediTrack | Tu salud, a tiempo{% endblock %}
+{% block body_class %}bg-gradient-to-b from-[#e3efe3] via-paper to-[#f4eed9]{% endblock %}
+{% block body %}
+  <header class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-8">
+    <a href="/" class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark">
+      <span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow-md"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack
+    </a>
+    <nav class="flex items-center gap-2" aria-label="Acceso">
+      <a href="/login" class="inline-flex min-h-[48px] items-center rounded-full px-5 text-base font-bold text-brand-dark transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-brand/30">Iniciar sesión</a>
+      <a href="/login#registro" class="inline-flex min-h-[48px] items-center rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">Crear cuenta</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pt-16">
+      <div class="min-w-0">
+        <p class="mb-3 text-sm font-bold uppercase tracking-widest text-brand">Cuidado que acompaña</p>
+        <h1 class="mb-6 font-serif text-5xl font-semibold leading-tight sm:text-6xl lg:text-7xl">Tu tratamiento,<br><em class="not-italic text-brand">en buenas manos.</em></h1>
+        <p class="max-w-lg text-lg leading-relaxed text-muted sm:text-xl">Organiza tus medicamentos, programa tus tratamientos y recibe un aviso justo cuando toca cuidarte.</p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/login#registro" class="inline-flex min-h-[56px] items-center gap-2 rounded-full bg-brand px-7 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">Empezar ahora <i data-icon="arrow" class="h-5 w-5"></i></a>
+          <a href="/login" class="inline-flex min-h-[56px] items-center rounded-full bg-white px-7 text-lg font-bold text-brand-dark shadow-soft transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30">Ya tengo cuenta</a>
+        </div>
+      </div>
+
+      <div class="relative min-w-0" aria-hidden="true">
+        <div class="absolute -right-6 -top-8 h-40 w-40 rounded-full bg-sun/60"></div>
+        <div class="relative rounded-[2rem] bg-white p-5 shadow-lift sm:p-7">
+          <p class="mb-4 text-sm font-bold uppercase tracking-widest text-brand">Agenda de hoy</p>
+          <div class="grid gap-3">
+            <div class="flex items-center gap-4 rounded-3xl bg-[#eef8f2] p-4">
+              <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-mint text-brand"><i data-icon="check" class="h-6 w-6"></i></span>
+              <div class="min-w-0 flex-1"><span class="font-serif text-xl font-semibold">08:00</span><strong class="block text-lg">Losartán</strong><span class="text-muted">1 tableta</span></div>
+              <span class="rounded-full bg-brand-mint px-3 py-0.5 text-sm font-bold text-brand-dark">Tomada</span>
+            </div>
+            <div class="flex items-center gap-4 rounded-3xl bg-[#fff8e6] p-4">
+              <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#fbe7b0] text-[#8a6416]"><i data-icon="clock" class="h-6 w-6"></i></span>
+              <div class="min-w-0 flex-1"><span class="font-serif text-xl font-semibold">14:00</span><strong class="block text-lg">Metformina</strong><span class="text-muted">1 cápsula</span></div>
+              <span class="rounded-full bg-[#fbe7b0] px-3 py-0.5 text-sm font-bold text-[#7a5c10]">Pendiente</span>
+            </div>
+            <div class="flex items-center gap-4 rounded-3xl bg-[#eef5f9] p-4">
+              <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#cfe3ee] text-[#2f5d75]"><i data-icon="bell" class="h-6 w-6"></i></span>
+              <div class="min-w-0 flex-1"><span class="font-serif text-xl font-semibold">20:00</span><strong class="block text-lg">Omeprazol</strong><span class="text-muted">1 cápsula</span></div>
+              <span class="rounded-full bg-[#cfe3ee] px-3 py-0.5 text-sm font-bold text-[#2f5d75]">Pospuesta</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-8" aria-labelledby="features-title">
+      <h2 id="features-title" class="mb-8 font-serif text-4xl font-semibold">Todo lo que necesitas, en un solo lugar</h2>
+      <div class="grid gap-5 md:grid-cols-3">
+        <article class="rounded-[2rem] bg-white p-7 shadow-soft">
+          <span class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-brand-mint text-brand"><i data-icon="calendar" class="h-7 w-7"></i></span>
+          <h3 class="mb-2 font-serif text-2xl font-semibold">Agenda simple</h3>
+          <p class="text-base leading-relaxed text-muted">Ve de un vistazo las dosis de hoy y márcalas como tomadas con un toque.</p>
+        </article>
+        <article class="rounded-[2rem] bg-white p-7 shadow-soft">
+          <span class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#fff2cb] text-[#a67c22]"><i data-icon="beaker" class="h-7 w-7"></i></span>
+          <h3 class="mb-2 font-serif text-2xl font-semibold">Control de existencias</h3>
+          <p class="text-base leading-relaxed text-muted">Lleva tu biblioteca de medicamentos y recibe señales cuando queda poco stock.</p>
+        </article>
+        <article class="rounded-[2rem] bg-white p-7 shadow-soft">
+          <span class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#deedf4] text-[#2f5d75]"><i data-icon="bell" class="h-7 w-7"></i></span>
+          <h3 class="mb-2 font-serif text-2xl font-semibold">Recordatorios oportunos</h3>
+          <p class="text-base leading-relaxed text-muted">Un aviso justo a la hora de tu dosis, con opción de posponerla.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-8" aria-labelledby="steps-title">
+      <h2 id="steps-title" class="mb-8 font-serif text-4xl font-semibold">Cómo funciona</h2>
+      <ol class="grid gap-5 md:grid-cols-3">
+        <li class="flex gap-4 rounded-3xl bg-white/70 p-6"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-white">1</span><div><strong class="block text-lg">Registra tus medicamentos</strong><span class="text-muted">Nombre, presentación y existencias.</span></div></li>
+        <li class="flex gap-4 rounded-3xl bg-white/70 p-6"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-white">2</span><div><strong class="block text-lg">Crea tu tratamiento</strong><span class="text-muted">Define dosis, horarios y duración.</span></div></li>
+        <li class="flex gap-4 rounded-3xl bg-white/70 p-6"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-white">3</span><div><strong class="block text-lg">Sigue tu agenda</strong><span class="text-muted">Recibe avisos y registra cada toma.</span></div></li>
+      </ol>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-8">
+      <div class="flex flex-col items-start gap-5 rounded-[2rem] bg-gradient-to-br from-brand-dark to-brand p-8 text-white shadow-lift sm:flex-row sm:items-center sm:justify-between sm:p-10">
+        <div><h2 class="font-serif text-3xl font-semibold sm:text-4xl">Empieza a cuidarte hoy</h2><p class="mt-2 text-lg text-brand-mint">Crear tu cuenta toma menos de un minuto.</p></div>
+        <a href="/login#registro" class="inline-flex min-h-[56px] items-center gap-2 rounded-full bg-white px-7 text-lg font-bold text-brand-dark shadow transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-white/40">Crear cuenta <i data-icon="arrow" class="h-5 w-5"></i></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-line/70 py-8 text-center text-sm text-muted">MediTrack · Tu salud, a tiempo</footer>
+{% endblock %}

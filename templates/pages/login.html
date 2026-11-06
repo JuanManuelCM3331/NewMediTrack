@@ -1,0 +1,77 @@
+{% extends "layouts/base.html" %}
+{% block title %}MediTrack | Iniciar sesión{% endblock %}
+{% block body_class %}bg-gradient-to-br from-[#e3efe3] via-paper to-[#f4eed9]{% endblock %}
+{% block body %}
+  <main class="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:gap-16 lg:py-12">
+    <section class="min-w-0">
+      <a href="/" class="inline-flex min-h-[44px] items-center gap-3 text-xl font-bold text-brand-dark">
+        <span class="grid h-10 w-10 place-items-center rounded-2xl bg-brand text-white shadow-md"><i data-icon="plus" class="h-6 w-6"></i></span> MediTrack
+      </a>
+      <p class="mb-3 mt-10 text-sm font-bold uppercase tracking-widest text-brand lg:mt-24">Cuidado que acompaña</p>
+      <h1 class="mb-6 font-serif text-5xl font-semibold leading-tight sm:text-6xl lg:text-7xl">Tu tratamiento,<br><em class="not-italic text-brand">en buenas manos.</em></h1>
+      <p class="max-w-md text-lg leading-relaxed text-muted sm:text-xl">Organiza tus medicamentos y recibe un aviso justo cuando toca cuidarte.</p>
+      <div class="mt-8 flex flex-wrap gap-3 text-base font-semibold text-brand-dark lg:mt-12">
+        <span class="rounded-full bg-white px-5 py-2.5 shadow-soft"><i data-icon="sparkles" class="mr-1 inline h-4 w-4 align-[-2px] text-sun-deep"></i> Agenda simple y visible</span>
+        <span class="rounded-full bg-white px-5 py-2.5 shadow-soft"><i data-icon="sparkles" class="mr-1 inline h-4 w-4 align-[-2px] text-sun-deep"></i> Recordatorios oportunos</span>
+      </div>
+    </section>
+    <section class="min-w-0">
+      <form id="login-form" class="rounded-[2rem] bg-white p-6 shadow-lift sm:p-10">
+        <div class="mb-3 inline-block rounded-full bg-brand-mint px-3 py-1 text-sm font-bold text-brand-dark">Bienvenido de vuelta</div>
+        <h2 class="mb-2 font-serif text-4xl font-semibold leading-tight">Inicia sesión</h2>
+        <p class="text-base leading-relaxed text-muted">Accede a tu espacio de cuidado personal.</p>
+        <label for="email" class="mb-2 mt-6 block text-base font-semibold">Correo electrónico</label>
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <label for="password" class="mb-2 mt-6 block text-base font-semibold">Contraseña</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Mínimo 8 caracteres" required minlength="8" maxlength="72" class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <div id="login-error" class="mt-3 min-h-[24px] text-base font-semibold text-coral-dark" role="alert"></div>
+        <button id="login-button" class="mt-4 flex min-h-[56px] w-full items-center justify-between rounded-full bg-brand px-6 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-70" type="submit">Entrar a MediTrack <i data-icon="arrow" class="h-5 w-5"></i></button>
+        {% if show_demo_hint %}
+        <div class="mt-6 rounded-2xl border border-line bg-[#f6f9f4] p-4 text-center">
+          <p class="mb-3 text-xs font-bold uppercase tracking-wider text-muted">Acceso rápido con cuentas de prueba</p>
+          <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <button
+              type="button"
+              class="demo-fill-btn inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-brand-dark shadow-sm transition hover:border-brand hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/20 active:scale-[.98]"
+              data-demo-email="{{ demo_admin_email }}"
+              data-demo-password="{{ demo_admin_password }}"
+              data-demo-role="Administrador"
+              title="Rellenar credenciales de Administrador"
+            >
+              <i data-icon="shield" class="h-4 w-4 text-brand"></i>
+              <span>Admin de prueba</span>
+            </button>
+            <button
+              type="button"
+              class="demo-fill-btn inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-brand-dark shadow-sm transition hover:border-brand hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/20 active:scale-[.98]"
+              data-demo-email="{{ demo_user_email }}"
+              data-demo-password="{{ demo_user_password }}"
+              data-demo-role="Usuario"
+              title="Rellenar credenciales de Usuario normal"
+            >
+              <i data-icon="user" class="h-4 w-4 text-sun-deep"></i>
+              <span>Usuario de prueba</span>
+            </button>
+          </div>
+          <p id="demo-fill-notice" class="mt-2.5 text-xs text-muted">Haz clic en un botón para completar los campos automáticamente</p>
+        </div>
+        {% endif %}
+        <p class="mt-6 text-center text-base text-muted">¿Aún no tienes cuenta? <button type="button" id="show-register" class="min-h-[44px] px-1 font-bold text-brand underline underline-offset-4 hover:text-brand-dark">Crear una cuenta</button></p>
+      </form>
+      <form id="register-form" class="hidden rounded-[2rem] bg-white p-6 shadow-lift sm:p-10">
+        <div class="mb-3 inline-block rounded-full bg-brand-mint px-3 py-1 text-sm font-bold text-brand-dark">Primer paso</div>
+        <h2 class="mb-2 font-serif text-4xl font-semibold leading-tight">Crea tu cuenta</h2>
+        <p class="text-base leading-relaxed text-muted">Registra tus datos para organizar tus tratamientos.</p>
+        <label for="register-name" class="mb-2 mt-6 block text-base font-semibold">Nombre completo</label>
+        <input id="register-name" name="full_name" type="text" autocomplete="name" placeholder="Ej. María González" required minlength="2" maxlength="120" class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <label for="register-email" class="mb-2 mt-6 block text-base font-semibold">Correo electrónico</label>
+        <input id="register-email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <label for="register-password" class="mb-2 mt-6 block text-base font-semibold">Contraseña</label>
+        <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Entre 8 y 72 caracteres" required minlength="8" maxlength="72" class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <div id="register-error" class="mt-3 min-h-[24px] text-base font-semibold text-coral-dark" role="alert"></div>
+        <button id="register-button" class="mt-4 flex min-h-[56px] w-full items-center justify-between rounded-full bg-brand px-6 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-70" type="submit">Crear cuenta <i data-icon="arrow" class="h-5 w-5"></i></button>
+        <p class="mt-6 text-center text-base text-muted">¿Ya tienes una cuenta? <button type="button" id="show-login" class="min-h-[44px] px-1 font-bold text-brand underline underline-offset-4 hover:text-brand-dark">Iniciar sesión</button></p>
+      </form>
+    </section>
+  </main>
+{% endblock %}

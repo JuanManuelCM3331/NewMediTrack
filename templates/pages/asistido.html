@@ -1,0 +1,106 @@
+{% extends "layouts/base.html" %}
+{% set active_page = "asistido" %}
+{% block title %}MediTrack | Modo Asistido{% endblock %}
+{% block body_class %}app-page bg-paper text-ink font-sans antialiased{% endblock %}
+{% block body %}
+  <header class="sticky top-0 z-20 bg-white/95 shadow-soft backdrop-blur">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
+      <a class="inline-flex min-h-[48px] items-center gap-3 text-2xl font-bold text-brand-dark" href="/app/asistido">
+        <span class="grid h-11 w-11 place-items-center rounded-2xl bg-brand text-white shadow"><i data-icon="plus" class="h-7 w-7"></i></span> MediTrack
+      </a>
+      <div class="flex items-center gap-3">
+        <div class="grid h-12 w-12 place-items-center rounded-full bg-sun text-xl font-bold text-[#6b5314]" id="user-avatar">M</div>
+        <div class="hidden leading-tight sm:block">
+          <strong id="user-name" class="block text-lg">Cargando...</strong>
+          <span class="text-sm font-semibold text-brand">Modo Asistido</span>
+        </div>
+        <a href="/app/selector" class="inline-flex min-h-[48px] items-center gap-2 rounded-full border-2 border-line bg-white px-4 text-base font-bold text-muted transition hover:border-brand hover:bg-brand-mint hover:text-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30" title="Cambiar a otro modo de uso">
+          <i data-icon="sparkles" class="h-5 w-5"></i>
+          <span class="max-sm:hidden">Cambiar modo</span>
+        </a>
+        <button id="logout-button" class="grid h-12 w-12 place-items-center rounded-full bg-[#f1f5f1] text-ink transition hover:bg-[#ffe5df] hover:text-coral-dark focus:outline-none focus:ring-4 focus:ring-coral/30" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <i data-icon="logout" class="h-6 w-6"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 pb-44 pt-6 sm:px-8 sm:pt-10">
+    <div id="app-message" class="pointer-events-none fixed bottom-6 right-4 z-40 max-w-[calc(100%-2rem)] translate-y-3 rounded-2xl bg-brand-dark px-6 py-4 text-lg font-bold text-white opacity-0 shadow-lift transition sm:right-6" role="status"></div>
+
+    <section class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Tu agenda diaria</p>
+        <h1 class="font-serif text-4xl font-semibold leading-tight sm:text-5xl">Hola, <span id="welcome-name">María</span>.</h1>
+        <p class="mt-1 text-lg text-muted">Aquí tienes tus medicamentos organizados de forma clara.</p>
+      </div>
+      <div class="self-start rounded-3xl bg-white px-6 py-3 shadow-soft sm:self-auto sm:text-right">
+        <span id="day-name" class="block text-sm font-bold tracking-widest text-brand">HOY</span>
+        <strong id="today-date" class="font-serif text-3xl">--</strong>
+      </div>
+    </section>
+
+    <!-- Tarjeta Principal: Próxima toma inmediata -->
+    <section class="mb-10 rounded-[2.5rem] bg-white p-6 shadow-lift sm:p-10" id="asistido-hero-section">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line/60 pb-4">
+        <span class="inline-flex items-center gap-2 rounded-full bg-brand-mint px-4 py-1.5 text-base font-bold text-brand-dark">
+          <i data-icon="sparkles" class="h-5 w-5"></i> Tu dosis actual
+        </span>
+        <span id="asistido-hero-time" class="rounded-full bg-[#f1f5f1] px-5 py-2 text-xl font-bold text-ink">--:--</span>
+      </div>
+
+      <div class="py-2" id="asistido-hero-content">
+        <div class="min-w-0">
+          <h2 id="asistido-hero-title" class="font-serif text-4xl font-bold leading-tight text-ink sm:text-5xl [overflow-wrap:anywhere]">Cargando...</h2>
+          <p id="asistido-hero-detail" class="mt-2 text-2xl font-semibold text-brand [overflow-wrap:anywhere]">Verificando horario...</p>
+        </div>
+
+        <div id="asistido-hero-instructions" class="mt-5 hidden rounded-2xl bg-[#fff8e8] p-4 text-base font-medium text-ink"></div>
+
+        <!-- Botones de Acción Grandes -->
+        <div class="mt-8 grid gap-3 sm:grid-cols-3" id="asistido-hero-actions">
+          <button type="button" id="asistido-take-btn" class="flex min-h-[64px] items-center justify-center gap-3 rounded-full bg-brand px-6 text-xl font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand">
+            <i data-icon="check" class="h-7 w-7"></i> Me la tomé
+          </button>
+          <button type="button" id="asistido-snooze-btn" class="flex min-h-[64px] items-center justify-center gap-3 rounded-full bg-[#fff2cb] px-6 text-xl font-bold text-[#8a6416] transition hover:bg-[#fae4a7] focus:outline-none focus:ring-4 focus:ring-[#8a6416]/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#fff2cb]">
+            <i data-icon="clock" class="h-7 w-7"></i> Posponer 10 min
+          </button>
+          <button type="button" id="asistido-miss-btn" class="flex min-h-[64px] items-center justify-center gap-3 rounded-full bg-[#fee2e2] px-6 text-xl font-bold text-[#991b1b] transition hover:bg-[#fecaca] focus:outline-none focus:ring-4 focus:ring-[#991b1b]/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#fee2e2]">
+            <i data-icon="x" class="h-7 w-7"></i> No me la tomé
+          </button>
+        </div>
+        <p id="asistido-hero-wait-msg" class="mt-4 hidden rounded-2xl bg-[#f4f7f4] p-4 text-center text-base font-semibold text-muted">
+          <i data-icon="clock" class="mr-1.5 inline h-5 w-5 align-[-3px] text-brand"></i>
+          Aún no estás en el rango de horario para este medicamento (estará disponible 15 minutos antes de la hora).
+        </p>
+      </div>
+
+      <div id="asistido-hero-empty" class="hidden py-6 text-center">
+        <span class="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-brand-mint text-brand text-2xl">
+          <i data-icon="check" class="h-9 w-9"></i>
+        </span>
+        <h2 class="font-serif text-3xl font-bold text-ink">¡Todo al día por ahora!</h2>
+        <p class="mt-2 text-xl text-muted">No tienes medicamentos pendientes de tomar en este momento.</p>
+      </div>
+    </section>
+
+    <!-- Sección: Siguientes dosis a consumir -->
+    <section aria-labelledby="asistido-following-title">
+      <div class="mb-5 flex items-center gap-3">
+        <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#fff2cb] text-[#a67c22]"><i data-icon="clock" class="h-6 w-6"></i></span>
+        <div>
+          <h2 id="asistido-following-title" class="font-serif text-3xl font-semibold leading-tight">Siguientes medicamentos</h2>
+          <p class="text-base text-muted">Las tomas que vienen a continuación para más tarde o mañana</p>
+        </div>
+      </div>
+
+      <div id="asistido-following-list" class="grid gap-4">
+        <div class="rounded-3xl bg-white p-8 text-center text-lg text-muted shadow-soft">
+          Cargando siguientes dosis...
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "partials/modal_details.html" %}
+{% endblock %}

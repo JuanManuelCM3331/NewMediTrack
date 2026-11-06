@@ -1,0 +1,13 @@
+{# Aviso flotante de dosis por tomar (todas las vistas del panel) #}
+  <div id="dose-alert" class="fixed bottom-4 left-1/2 z-30 hidden w-[min(820px,calc(100%-2rem))] -translate-x-1/2 flex-wrap items-center gap-4 rounded-[2rem] bg-white p-5 shadow-lift ring-2 ring-sun-deep/70 sm:p-6">
+    <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sun text-[#6b5314]"><i data-icon="bell" class="h-7 w-7"></i></div>
+    <div class="min-w-0 flex-1 basis-56">
+      <span class="text-sm font-bold uppercase tracking-widest text-brand">Es hora de cuidarte</span>
+      <h3 id="alert-title" class="font-serif text-2xl font-semibold leading-tight">Tienes una dosis pendiente</h3>
+      <p id="alert-detail" class="text-base text-muted">Elige una opción antes de que pasen 5 minutos.</p>
+    </div>
+    <div class="flex w-full gap-3 sm:w-auto">
+      <button class="min-h-[56px] flex-1 rounded-full bg-brand px-6 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 sm:flex-none" data-decision="taken">Tomar ahora</button>
+      <button class="min-h-[56px] flex-1 rounded-full bg-[#eef2ec] px-6 text-base font-bold text-brand-dark transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30 sm:flex-none" data-decision="snoozed">Posponer 10 min</button>
+    </div>
+  </div>
