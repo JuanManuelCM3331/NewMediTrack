@@ -128,6 +128,17 @@ const EMPTY_CLASS = 'col-span-full px-2 py-8 text-center text-base text-muted';
 const EDIT_BTN = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-brand-dark transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30';
 const DELETE_BTN = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-coral-dark transition hover:bg-[#ffd9d0] focus:outline-none focus:ring-4 focus:ring-coral/30';
 
+const VIEW_MODE_KEY = 'meditrack_view_mode';
+
+function clearSavedViewMode() {
+  sessionStorage.removeItem(VIEW_MODE_KEY);
+  localStorage.removeItem(VIEW_MODE_KEY);
+}
+
+function getPostAuthRoute(authResponse) {
+  return authResponse?.data?.user?.role === 'admin' ? '/app' : '/app/selector';
+}
+
 async function handleLogin(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -138,12 +149,14 @@ async function handleLogin(event) {
   button.disabled = true;
   button.textContent = 'Ingresando...';
   try {
-    await api('/sessions', {
+    const res = await api('/sessions', {
       method: 'POST',
       body: JSON.stringify({ email: form.email.value, password: form.password.value })
     });
+    // Reiniciar modo guardado para que usuarios no admin elijan siempre al iniciar sesión
+    clearSavedViewMode();
     // El token de autenticación se gestiona en Cookie HttpOnly (inmune a XSS)
-    location.href = '/app';
+    location.href = getPostAuthRoute(res);
   } catch (err) {
     error.textContent = err.message;
     button.disabled = false;
@@ -161,11 +174,12 @@ async function handleRegister(event) {
   button.disabled = true;
   button.textContent = 'Creando cuenta...';
   try {
-    await api('/users', {
+    const res = await api('/users', {
       method: 'POST',
       body: JSON.stringify({ full_name: form.full_name.value, email: form.email.value, password: form.password.value })
     });
-    location.href = '/app';
+    clearSavedViewMode();
+    location.href = getPostAuthRoute(res);
   } catch (err) {
     error.textContent = err.message;
     button.disabled = false;
@@ -211,7 +225,8 @@ async function loadDashboard() {
       return;
     }
 
-    const savedMode = localStorage.getItem('meditrack_view_mode');
+    localStorage.removeItem(VIEW_MODE_KEY);
+    const savedMode = sessionStorage.getItem(VIEW_MODE_KEY);
 
     // Si ingresa al panel principal sin haber elegido modo previamente, dirigir al selector
     if (page === 'panel' && !savedMode) {
@@ -801,12 +816,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-select-mode]').forEach(btn => {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.selectMode;
-      localStorage.setItem('meditrack_view_mode', mode);
-      if (mode === 'asistido') {
-        location.href = '/app/asistido';
-      } else {
-        location.href = '/app';
-      }
+      localStorage.removeItem(VIEW_MODE_KEY);
+      sessionStorage.setItem(VIEW_MODE_KEY, mode);
+      location.href = mode === 'asistido' ? '/app/asistido' : '/app';
     });
   });
 
@@ -854,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     q('#logout-button').addEventListener('click', async () => {
+      clearSavedViewMode();
       try {
         await api('/sessions/logout', { method: 'POST' });
       } catch (err) {
@@ -912,6 +925,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (treatmentButton) deleteTreatment(treatmentButton);
     });
 
-    setInterval(loadDoses, 15000);
+    if (PAGE() !== 'selector') {
+      setInterval(loadDoses, 15000);
+    }
   }
 });

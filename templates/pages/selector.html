@@ -28,76 +28,93 @@
 
     <div class="mt-10 grid gap-6 md:grid-cols-2 lg:gap-8">
       <!-- Opción 1: Adulto Mayor (Modo Asistido) -->
-      <article class="flex flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:border-brand hover:shadow-lift sm:p-8">
-        <div>
-          <div class="flex items-center justify-between gap-2">
-            <span class="rounded-full bg-brand-mint px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-brand-dark">Recomendado para el paciente</span>
-            <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eef8f2] text-brand">
-              <i data-icon="sparkles" class="h-6 w-6"></i>
+      <button type="button" data-select-mode="asistido" class="group flex h-full w-full cursor-pointer flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-brand p-6 text-left text-white shadow-lift transition hover:-translate-y-1 hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 active:scale-[.99] sm:p-8">
+        <span class="block w-full">
+          <span class="inline-block rounded-full bg-black/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Recomendado para el paciente</span>
+          <strong class="mt-5 block font-serif text-3xl font-semibold text-white sm:text-4xl">Adulto Mayor</strong>
+          <span class="mt-1 block text-base font-semibold text-white/95">Modo Asistido y Sencillo</span>
+
+          <!-- Ícono central representativo del rol Adulto Mayor -->
+          <span class="my-6 flex w-full justify-center">
+            <span class="grid h-28 w-28 place-items-center rounded-[2rem] border border-white/25 bg-white/15 text-white shadow-inner transition-transform duration-200 group-hover:scale-105">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 48 48" stroke-width="2.2" stroke="currentColor" aria-hidden="true" class="h-20 w-20">
+                <circle cx="24" cy="16.5" r="9.5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.6 12.6c2.4-2.3 5.2-3.1 8.4-3.1s6 .8 8.4 3.1" />
+                <circle cx="19.8" cy="17.2" r="2.7" />
+                <circle cx="28.2" cy="17.2" r="2.7" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22.5 17.2h3M14.7 16.6l2.4.6M33.3 16.6l-2.4.6M21 22c1.8 1.5 4.2 1.5 6 0M9 41c0-6.8 6.7-11.5 15-11.5S39 34.2 39 41" />
+              </svg>
             </span>
-          </div>
-          <h2 class="mt-5 font-serif text-3xl font-semibold sm:text-4xl">Adulto Mayor</h2>
-          <p class="mt-1 text-base font-semibold text-brand">Modo Asistido y Sencillo</p>
-          <p class="mt-3 text-base leading-relaxed text-muted">
+          </span>
+
+          <span class="block text-base leading-relaxed text-white/95">
             Diseñado especialmente para ser fácil y tranquilo. Letras más grandes, menos botones y acceso directo a tus dosis para confirmar con un solo toque.
-          </p>
-          <ul class="mt-6 space-y-3 border-t border-line/60 pt-5 text-base font-medium text-ink">
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+          </span>
+          <span class="mt-6 block space-y-3 border-t border-white/20 pt-5 text-base font-medium text-white">
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Letras grandes y fácil lectura</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+            </span>
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Botones directos: <strong>Me la tomé</strong>, <strong>Posponer</strong> o <strong>No me la tomé</strong></span>
-            </li>
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-mint text-brand text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+            </span>
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Sin menús confusos ni configuraciones difíciles</span>
-            </li>
-          </ul>
-        </div>
-        <div class="mt-8 pt-4">
-          <button type="button" data-select-mode="asistido" class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full bg-brand px-6 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">
-            Ingresar como Adulto Mayor <i data-icon="arrow" class="h-5 w-5"></i>
-          </button>
-        </div>
-      </article>
+            </span>
+          </span>
+        </span>
+        <span class="mt-8 block w-full pt-4">
+          <span class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-black/20 px-6 text-lg font-bold text-white shadow-sm transition group-hover:bg-black/30">
+            Ingresar como Adulto Mayor <i data-icon="arrow" class="h-5 w-5 transition-transform group-hover:translate-x-1"></i>
+          </span>
+        </span>
+      </button>
 
       <!-- Opción 2: Cuidador (Modo Completo) -->
-      <article class="flex flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:border-[#6c9ab5] hover:shadow-lift sm:p-8">
-        <div>
-          <div class="flex items-center justify-between gap-2">
-            <span class="rounded-full bg-[#deedf4] px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#2f5d75]">Para gestión y apoyo</span>
-            <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#eef5f9] text-[#2f5d75]">
-              <i data-icon="clipboard" class="h-6 w-6"></i>
+      <button type="button" data-select-mode="cuidador" class="group flex h-full w-full cursor-pointer flex-col justify-between rounded-[2.5rem] border-2 border-transparent bg-[#28637c] p-6 text-left text-white shadow-lift transition hover:-translate-y-1 hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30 active:scale-[.99] sm:p-8">
+        <span class="block w-full">
+          <span class="inline-block rounded-full bg-black/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Para gestión y apoyo</span>
+          <strong class="mt-5 block font-serif text-3xl font-semibold text-white sm:text-4xl">Cuidador</strong>
+          <span class="mt-1 block text-base font-semibold text-white/95">Modo Completo</span>
+
+          <!-- Ícono central representativo del rol Cuidador -->
+          <span class="my-6 flex w-full justify-center">
+            <span class="grid h-28 w-28 place-items-center rounded-[2rem] border border-white/25 bg-white/15 text-white shadow-inner transition-transform duration-200 group-hover:scale-105">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 48 48" stroke-width="2.2" stroke="currentColor" aria-hidden="true" class="h-20 w-20">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M24 26.5s-9-5.4-9-11.2a4.9 4.9 0 0 1 9-2.7 4.9 4.9 0 0 1 9 2.7c0 5.8-9 11.2-9 11.2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M24 14.8v5.4M21.3 17.5h5.4" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.5 41H15c-4.1 0-7.5-3.4-7.5-7.5V23a2.25 2.25 0 0 1 4.5 0v6.2l6.8 4.2a2.2 2.2 0 0 1-2.3 3.7L12 34.4" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M26.5 41H33c4.1 0 7.5-3.4 7.5-7.5V23a2.25 2.25 0 0 0-4.5 0v6.2l-6.8 4.2a2.2 2.2 0 0 0 2.3 3.7L36 34.4" />
+              </svg>
             </span>
-          </div>
-          <h2 class="mt-5 font-serif text-3xl font-semibold sm:text-4xl">Cuidador</h2>
-          <p class="mt-1 text-base font-semibold text-[#2f5d75]">Modo Completo</p>
-          <p class="mt-3 text-base leading-relaxed text-muted">
+          </span>
+
+          <span class="block text-base leading-relaxed text-white/95">
             Panel completo con todas las herramientas para registrar medicamentos, crear pautas de tratamiento, revisar existencias y supervisar el cumplimiento.
-          </p>
-          <ul class="mt-6 space-y-3 border-t border-line/60 pt-5 text-base font-medium text-ink">
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+          </span>
+          <span class="mt-6 block space-y-3 border-t border-white/20 pt-5 text-base font-medium text-white">
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Biblioteca de medicamentos y control de stock</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+            </span>
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Creación y edición de pautas de tratamiento</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#2f5d75] text-xs font-bold"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
+            </span>
+            <span class="flex items-start gap-3">
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-xs font-bold text-white"><i data-icon="check" class="h-3.5 w-3.5"></i></span>
               <span>Agenda diaria completa con métricas detalladas</span>
-            </li>
-          </ul>
-        </div>
-        <div class="mt-8 pt-4">
-          <button type="button" data-select-mode="cuidador" class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#28637c] px-6 text-lg font-bold text-white shadow-md transition hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
-            Ingresar como Cuidador <i data-icon="arrow" class="h-5 w-5"></i>
-          </button>
-        </div>
-      </article>
+            </span>
+          </span>
+        </span>
+        <span class="mt-8 block w-full pt-4">
+          <span class="flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-black/20 px-6 text-lg font-bold text-white shadow-sm transition group-hover:bg-black/30">
+            Ingresar como Cuidador <i data-icon="arrow" class="h-5 w-5 transition-transform group-hover:translate-x-1"></i>
+          </span>
+        </span>
+      </button>
     </div>
   </main>
 {% endblock %}
