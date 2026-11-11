@@ -25,7 +25,7 @@ def register(
     if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo")
 
-    user = create_user(db, payload.email, payload.full_name, payload.password)
+    user = create_user(db, payload.email, payload.full_name, payload.password, role=payload.role)
     token_str = create_access_token(user)
 
     response.set_cookie(

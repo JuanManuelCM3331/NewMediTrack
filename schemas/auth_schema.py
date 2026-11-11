@@ -18,6 +18,15 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=2, max_length=120)
     password: str = Field(min_length=8, max_length=72)
+    role: str = Field(default="user")
+
+    @field_validator("role")
+    @classmethod
+    def validate_allowed_role(cls, value: str) -> str:
+        cleaned = (value or "user").strip()
+        if cleaned not in {"user", "patient_admin"}:
+            raise ValueError("El rol seleccionado no es válido")
+        return cleaned
 
     @field_validator("full_name")
     @classmethod

@@ -128,6 +128,20 @@ const EMPTY_CLASS = 'col-span-full px-2 py-8 text-center text-base text-muted';
 const EDIT_BTN = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-brand-dark transition hover:bg-brand-mint focus:outline-none focus:ring-4 focus:ring-brand/30';
 const DELETE_BTN = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-coral-dark transition hover:bg-[#ffd9d0] focus:outline-none focus:ring-4 focus:ring-coral/30';
 
+const VIEW_MODE_KEY = 'meditrack_view_mode';
+
+function clearSavedViewMode() {
+  sessionStorage.removeItem(VIEW_MODE_KEY);
+  localStorage.removeItem(VIEW_MODE_KEY);
+}
+
+function getPostAuthRoute(authResponse) {
+  const role = authResponse?.data?.user?.role;
+  if (role === 'admin') return '/app';
+  if (role === 'patient_admin') return '/app/gestor';
+  return '/app/selector';
+}
+
 async function handleLogin(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -138,12 +152,14 @@ async function handleLogin(event) {
   button.disabled = true;
   button.textContent = 'Ingresando...';
   try {
-    await api('/sessions', {
+    const res = await api('/sessions', {
       method: 'POST',
       body: JSON.stringify({ email: form.email.value, password: form.password.value })
     });
+    // Reiniciar modo guardado para que usuarios no admin elijan siempre al iniciar sesión
+    clearSavedViewMode();
     // El token de autenticación se gestiona en Cookie HttpOnly (inmune a XSS)
-    location.href = '/app';
+    location.href = getPostAuthRoute(res);
   } catch (err) {
     error.textContent = err.message;
     button.disabled = false;
@@ -161,11 +177,17 @@ async function handleRegister(event) {
   button.disabled = true;
   button.textContent = 'Creando cuenta...';
   try {
-    await api('/users', {
+    const res = await api('/users', {
       method: 'POST',
-      body: JSON.stringify({ full_name: form.full_name.value, email: form.email.value, password: form.password.value })
+      body: JSON.stringify({
+        full_name: form.full_name.value,
+        email: form.email.value,
+        password: form.password.value,
+        role: form.role ? form.role.value : 'user'
+      })
     });
-    location.href = '/app';
+    clearSavedViewMode();
+    location.href = getPostAuthRoute(res);
   } catch (err) {
     error.textContent = err.message;
     button.disabled = false;
@@ -198,20 +220,35 @@ async function loadDashboard() {
   // Control según rol
   if (user.role === 'admin') {
     // Admin skipea el selector y no muestra botón de cambiar modo
-    if (page === 'selector') {
+    if (page === 'selector' || page === 'gestor') {
       location.href = '/app';
       return;
     }
     const switchBtn = document.querySelector('#switch-mode-btn');
     if (switchBtn) switchBtn.classList.add('hidden');
+  } else if (user.role === 'patient_admin') {
+    if (page !== 'gestor') {
+      location.href = '/app/gestor';
+      return;
+    }
+    const date = new Date();
+    q('#today-date').textContent = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+    q('#day-name').textContent = date.toLocaleDateString('es-CO', { weekday: 'long' }).toUpperCase();
+    const startDateInput = document.querySelector('#patient-treatment-start-date');
+    if (startDateInput && !startDateInput.value) {
+      startDateInput.value = date.toISOString().split('T')[0];
+    }
+    await loadPatientAdminDashboard();
+    return;
   } else {
-    // Usuario estándar: panel de resumen inaccesible
-    if (page === 'resumen') {
+    // Usuario estándar: panel de resumen y gestor inaccesibles
+    if (page === 'resumen' || page === 'gestor') {
       location.href = '/app';
       return;
     }
 
-    const savedMode = localStorage.getItem('meditrack_view_mode');
+    localStorage.removeItem(VIEW_MODE_KEY);
+    const savedMode = sessionStorage.getItem(VIEW_MODE_KEY);
 
     // Si ingresa al panel principal sin haber elegido modo previamente, dirigir al selector
     if (page === 'panel' && !savedMode) {
@@ -234,6 +271,9 @@ async function loadDashboard() {
   q('#today-date').textContent = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
   q('#day-name').textContent = date.toLocaleDateString('es-CO', { weekday: 'long' }).toUpperCase();
   const jobs = [loadDoses(), loadMedications(), loadTreatments()];
+  if (user.role === 'user' && (page === 'panel' || page === 'asistido')) {
+    jobs.push(loadPatientLinkRequests());
+  }
   if (page === 'resumen') jobs.push(loadAdminSummary());
   await Promise.all(jobs);
 }
@@ -241,7 +281,12 @@ async function loadDashboard() {
 function renderUser(user) {
   const fullName = unescapeHtml(user.full_name) || 'Usuario';
   q('#user-name').textContent = fullName;
-  q('#user-role').textContent = user.role === 'admin' ? 'Administrador' : 'Usuario estándar';
+  const roleLabels = {
+    admin: 'Administrador',
+    patient_admin: 'Administrador de pacientes',
+    user: 'Usuario estándar'
+  };
+  q('#user-role').textContent = roleLabels[user.role] || 'Usuario estándar';
   q('#welcome-name').textContent = (fullName || 'amigo').split(' ')[0];
   q('#user-avatar').textContent = (fullName || 'M').charAt(0).toUpperCase();
   if (user.role === 'admin') {
@@ -757,6 +802,639 @@ async function takeDoseInline(doseId) {
   await decideDoseById(doseId, 'taken');
 }
 
+// ============================================================================
+// Enlaces de Paciente y Panel de Administrador de Pacientes
+// ============================================================================
+
+let managerLinks = [];
+let managerSchemas = [];
+let managerCatalogMedications = [];
+let selectedPatientId = null;
+
+async function loadPatientLinkRequests() {
+  const banner = document.querySelector('#patient-links-banner');
+  const list = document.querySelector('#patient-links-list');
+  if (!banner || !list) return;
+  try {
+    const links = (await api('/patient-links/my-requests')).data || [];
+    const visible = links.filter(l => l.status === 'pending' || l.status === 'accepted');
+    if (!visible.length) {
+      banner.classList.add('hidden');
+      return;
+    }
+    banner.classList.remove('hidden');
+    list.innerHTML = visible.map(link => {
+      if (link.status === 'pending') {
+        return `
+          <article class="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#fff8e6] p-4 sm:p-5">
+            <div>
+              <span class="rounded-full bg-[#fbe7b0] px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-[#7a5c10]">Solicitud pendiente</span>
+              <strong class="mt-1.5 block text-lg font-bold text-ink">${escapeHtml(link.manager_name)} (${escapeHtml(link.manager_email)})</strong>
+              <p class="text-sm text-muted">Solicita permiso para registrarte medicamentos y programar tus dosis.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" data-link-decision="accept" data-link-id="${link.id}" class="inline-flex min-h-[46px] items-center gap-1.5 rounded-full bg-brand px-5 text-base font-bold text-white shadow transition hover:bg-brand-dark">
+                ${ico('check', 'h-5 w-5')} Aceptar enlace
+              </button>
+              <button type="button" data-link-decision="reject" data-link-id="${link.id}" class="inline-flex min-h-[46px] items-center gap-1.5 rounded-full bg-[#fee2e2] px-5 text-base font-bold text-[#991b1b] transition hover:bg-[#fecaca]">
+                ${ico('x', 'h-5 w-5')} Rechazar
+              </button>
+            </div>
+          </article>
+        `;
+      }
+      return `
+        <article class="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#eef8f2] p-4">
+          <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-full bg-brand-mint text-brand">${ico('check', 'h-5 w-5')}</span>
+            <div>
+              <strong class="block text-base font-bold text-ink">${escapeHtml(link.manager_name)}</strong>
+              <span class="text-sm text-muted">${escapeHtml(link.manager_email)} · Administrador de pacientes enlazado</span>
+            </div>
+          </div>
+          <button type="button" data-remove-link="${link.id}" class="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white px-4 text-sm font-bold text-coral-dark shadow-sm transition hover:bg-[#ffe5df]">
+            ${ico('trash', 'h-4 w-4')} Desvincular
+          </button>
+        </article>
+      `;
+    }).join('');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function decidePatientLink(linkId, decision) {
+  try {
+    const res = await api(`/patient-links/${linkId}/decision?decision=${decision}`, { method: 'POST' });
+    await Promise.all([loadPatientLinkRequests(), loadDoses(), loadMedications()]);
+    showMessage(res.message || 'Solicitud procesada');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function removePatientLink(linkId) {
+  try {
+    await api(`/patient-links/${linkId}`, { method: 'DELETE' });
+    if (PAGE() === 'gestor') {
+      await loadPatientAdminDashboard();
+    } else {
+      await loadPatientLinkRequests();
+    }
+    showMessage('Enlace eliminado');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+function switchGestorTab(tabName) {
+  if (!tabName) return;
+  document.querySelectorAll('[data-gestor-tab]').forEach(btn => {
+    const isActive = btn.dataset.gestorTab === tabName;
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if (isActive) {
+      btn.className = 'inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-[#28637c] px-5 text-base font-bold text-white shadow transition focus:outline-none focus:ring-4 focus:ring-[#28637c]/30';
+    } else {
+      btn.className = 'inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full px-5 text-base font-bold text-muted transition hover:bg-[#deedf4]/70 hover:text-[#28637c] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30';
+    }
+  });
+
+  document.querySelectorAll('[data-gestor-panel]').forEach(panel => {
+    panel.classList.toggle('hidden', panel.dataset.gestorPanel !== tabName);
+  });
+}
+
+async function loadPatientAdminDashboard() {
+  try {
+    const [linksRes, schemasRes, medsRes] = await Promise.all([
+      api('/patient-admin/links'),
+      api('/patient-admin/schemas'),
+      api('/medications')
+    ]);
+    managerLinks = linksRes.data || [];
+    managerSchemas = schemasRes.data || [];
+    managerCatalogMedications = medsRes.data || [];
+
+    const accepted = managerLinks.filter(l => l.status === 'accepted');
+    const pending = managerLinks.filter(l => l.status === 'pending');
+
+    q('#gestor-linked-count').textContent = accepted.length;
+    q('#gestor-pending-count').textContent = pending.length;
+    q('#gestor-catalog-meds-count').textContent = managerCatalogMedications.length;
+    q('#gestor-schemas-count').textContent = managerSchemas.length;
+
+    if (selectedPatientId && !accepted.some(l => l.patient_id === Number(selectedPatientId))) {
+      selectedPatientId = null;
+    }
+    if (!selectedPatientId && accepted.length > 0) {
+      selectedPatientId = accepted[0].patient_id;
+    }
+
+    renderManagerLinks();
+    renderCatalogMedications();
+    renderManagerSchemas();
+
+    if (selectedPatientId) {
+      await loadSelectedPatientOverview(selectedPatientId);
+    } else {
+      q('#no-patient-selected').classList.remove('hidden');
+      q('#active-patient-workspace').classList.add('hidden');
+    }
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+function renderManagerLinks() {
+  const container = q('#manager-links-list');
+  const directoryContainer = q('#patients-directory-list');
+
+  const statusBadges = {
+    accepted: { label: 'Enlazado', cls: 'bg-brand-mint text-brand-dark' },
+    pending: { label: 'Pendiente de aceptación', cls: 'bg-[#fbe7b0] text-[#7a5c10]' },
+    rejected: { label: 'Rechazada', cls: 'bg-[#ffd9d0] text-coral-dark' }
+  };
+
+  container.innerHTML = managerLinks.length
+    ? managerLinks.map(link => {
+        const st = statusBadges[link.status] || statusBadges.pending;
+        const isSelected = Number(selectedPatientId) === Number(link.patient_id) && link.status === 'accepted';
+        const manageBtn = link.status === 'accepted'
+          ? `<button type="button" data-select-patient="${link.patient_id}" data-open-patient-tab="true" class="inline-flex min-h-[42px] items-center gap-1.5 rounded-full ${isSelected ? 'bg-brand text-white' : 'bg-[#28637c] text-white hover:bg-[#1a4457]'} px-4 text-sm font-bold shadow transition">
+              ${ico('user', 'h-4 w-4')} ${isSelected ? 'Ver tratamientos y track' : 'Abrir ficha y tratamientos'}
+            </button>`
+          : '';
+        return `
+          <article class="flex flex-wrap items-center justify-between gap-3 rounded-3xl border ${isSelected ? 'border-brand bg-[#eef8f2]' : 'border-line/70 bg-[#f8faf8]'} p-4 transition">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <strong class="text-base font-bold text-ink">${escapeHtml(link.patient_name)}</strong>
+                <span class="rounded-full px-3 py-0.5 text-xs font-bold ${st.cls}">${st.label}</span>
+              </div>
+              <span class="block text-sm text-muted">${escapeHtml(link.patient_email)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              ${manageBtn}
+              <button type="button" data-remove-link="${link.id}" class="${DELETE_BTN}" title="Eliminar enlace" aria-label="Eliminar enlace">
+                ${ico('trash', 'h-4 w-4')}
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('')
+    : '<div class="py-6 text-center text-sm text-muted">Aún no has enviado solicitudes de enlace. Ingresa el correo de un paciente a la izquierda.</div>';
+
+  if (directoryContainer) {
+    directoryContainer.innerHTML = managerLinks.length
+      ? managerLinks.map(link => {
+          const st = statusBadges[link.status] || statusBadges.pending;
+          const isAccepted = link.status === 'accepted';
+          const isSelected = isAccepted && Number(selectedPatientId) === Number(link.patient_id);
+          const initials = (unescapeHtml(link.patient_name || 'P').trim()[0] || 'P').toUpperCase();
+          return `
+            <div class="rounded-3xl border-2 transition ${
+              isSelected
+                ? 'border-[#28637c] bg-[#eef5f9] shadow-soft'
+                : 'border-line/60 bg-[#f8faf8] hover:border-[#28637c]/40'
+            } p-4">
+              <div class="flex items-start justify-between gap-3">
+                <button type="button" ${isAccepted ? `data-select-patient="${link.patient_id}"` : 'disabled'}
+                  class="flex min-w-0 flex-1 items-center gap-3 text-left ${isAccepted ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'}">
+                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-serif text-lg font-bold ${
+                    isSelected ? 'bg-[#28637c] text-white' : 'bg-white text-[#28637c] shadow-sm'
+                  }">${escapeHtml(initials)}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-base font-bold text-ink">${escapeHtml(link.patient_name)}</span>
+                    <span class="block truncate text-xs text-muted">${escapeHtml(link.patient_email)}</span>
+                    <span class="mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${st.cls}">
+                      ${isSelected ? '✓ Viendo tratamientos y track' : st.label}
+                    </span>
+                  </span>
+                </button>
+                <button type="button" data-remove-link="${link.id}" class="${DELETE_BTN}" title="Eliminar enlace" aria-label="Eliminar enlace">
+                  ${ico('trash', 'h-4 w-4')}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')
+      : '<div class="py-6 text-center text-sm text-muted">No hay pacientes registrados.</div>';
+  }
+}
+
+function renderCatalogMedications() {
+  const list = q('#catalog-medications-list');
+  const schemaSelect = document.querySelector('#schema-catalog-med-select');
+  const assignSelect = document.querySelector('#assign-catalog-med-select');
+
+  const optionsHtml = managerCatalogMedications.length
+    ? `<option value="">-- Selecciona un medicamento creado en tu catálogo --</option>` +
+      managerCatalogMedications.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.presentation)})</option>`).join('')
+    : '<option value="">Crea primero medicamentos en la pestaña Medicamentos</option>';
+
+  if (schemaSelect) schemaSelect.innerHTML = optionsHtml;
+  if (assignSelect) assignSelect.innerHTML = optionsHtml;
+
+  list.innerHTML = managerCatalogMedications.length
+    ? managerCatalogMedications.map(m => `
+        <article class="flex flex-col justify-between rounded-3xl border border-line/70 bg-[#fffdf7] p-5 shadow-soft transition hover:shadow-lift">
+          <div>
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span class="rounded-full bg-[#fff2cb] px-3 py-0.5 text-xs font-bold text-[#8a6416]">Disponible para esquemas y pacientes</span>
+                <strong class="mt-2 block font-serif text-2xl font-semibold text-ink">${escapeHtml(m.name)}</strong>
+                <span class="mt-0.5 block text-sm font-bold text-[#a67c22]">${escapeHtml(m.presentation)}</span>
+              </div>
+              <button type="button" data-delete-catalog-med="${m.id}" class="${DELETE_BTN}" title="Eliminar del catálogo">
+                ${ico('trash', 'h-5 w-5')}
+              </button>
+            </div>
+            <p class="mt-3 text-sm font-semibold text-ink">Stock inicial sugerido: <b class="text-brand-dark">${m.stock} unidades</b></p>
+            ${m.notes ? `<p class="mt-2 text-sm text-muted">${escapeHtml(m.notes)}</p>` : ''}
+          </div>
+        </article>
+      `).join('')
+    : `<div class="${EMPTY_CLASS}">Aún no has creado medicamentos en tu catálogo. Usa el botón "Crear medicamento" para usarlos en tus esquemas o asignarlos a tus pacientes.</div>`;
+}
+
+function fillSchemaFromCatalog(medId) {
+  const med = managerCatalogMedications.find(m => m.id === Number(medId));
+  if (!med) return;
+  const nameInput = document.querySelector('#schema-med-name-input');
+  const presInput = document.querySelector('#schema-med-presentation-input');
+  const stockInput = document.querySelector('#schema-med-stock-input');
+  const notesInput = document.querySelector('#schema-med-notes-input');
+  if (nameInput) nameInput.value = unescapeHtml(med.name);
+  if (presInput) presInput.value = unescapeHtml(med.presentation);
+  if (stockInput) stockInput.value = med.stock;
+  if (notesInput) notesInput.value = unescapeHtml(med.notes || '');
+}
+
+function fillAssignMedFromCatalog(medId) {
+  const med = managerCatalogMedications.find(m => m.id === Number(medId));
+  if (!med) return;
+  const nameInput = document.querySelector('#assign-med-name-input');
+  const presInput = document.querySelector('#assign-med-presentation-input');
+  const stockInput = document.querySelector('#assign-med-stock-input');
+  const notesInput = document.querySelector('#assign-med-notes-input');
+  if (nameInput) nameInput.value = unescapeHtml(med.name);
+  if (presInput) presInput.value = unescapeHtml(med.presentation);
+  if (stockInput) stockInput.value = med.stock;
+  if (notesInput) notesInput.value = unescapeHtml(med.notes || '');
+}
+
+async function submitCatalogMedication(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    await api('/medications', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: form.name.value,
+        presentation: form.presentation.value,
+        stock: Number(form.stock.value),
+        notes: form.notes.value || null
+      })
+    });
+    closeModal(form.closest('.modal'));
+    form.reset();
+    await loadPatientAdminDashboard();
+    showMessage('Medicamento guardado en tu catálogo');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function deleteCatalogMedication(medId) {
+  try {
+    await api(`/medications/${medId}`, { method: 'DELETE' });
+    await loadPatientAdminDashboard();
+    showMessage('Medicamento eliminado del catálogo');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+function renderManagerSchemas() {
+  const list = q('#schema-list');
+  const select = q('#quick-schema-select');
+
+  select.innerHTML = managerSchemas.length
+    ? managerSchemas.map(s => `<option value="${s.id}">${escapeHtml(s.title)} — ${escapeHtml(s.medication_name)} (${escapeHtml(s.dosage)})</option>`).join('')
+    : '<option value="">Crea un esquema en la pestaña Esquemas</option>';
+
+  list.innerHTML = managerSchemas.length
+    ? managerSchemas.map(schema => `
+        <article class="flex flex-col justify-between rounded-3xl border border-[#28637c]/15 bg-[#eef5f9] p-6 shadow-soft transition hover:shadow-lift">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="rounded-full bg-[#cfe3ee] px-3 py-0.5 text-xs font-bold text-[#2f5d75]">Esquema configurado</span>
+                <strong class="mt-2 block font-serif text-2xl font-semibold text-ink">${escapeHtml(schema.title)}</strong>
+              </div>
+              <button type="button" data-delete-schema="${schema.id}" class="${DELETE_BTN}" title="Eliminar esquema" aria-label="Eliminar esquema">
+                ${ico('trash', 'h-5 w-5')}
+              </button>
+            </div>
+            <div class="mt-3 rounded-2xl bg-white/80 p-3.5">
+              <p class="text-base font-bold text-[#28637c]">${escapeHtml(schema.medication_name)} · ${escapeHtml(schema.presentation)}</p>
+              <p class="mt-1 text-sm font-semibold text-ink">Dosis: ${escapeHtml(schema.dosage)} · Duración: ${schema.duration_days} días · Stock inicial: ${schema.default_stock}</p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                ${(schema.schedule_times || []).map(t => `<span class="rounded-full bg-[#deedf4] px-2.5 py-0.5 text-xs font-bold text-[#28637c]">${ico('clock', 'inline h-3.5 w-3.5 mr-0.5')}${escapeHtml(t)}</span>`).join('')}
+              </div>
+            </div>
+            ${schema.instructions ? `<p class="mt-3 text-sm text-muted"><b>Indicaciones:</b> ${escapeHtml(schema.instructions)}</p>` : ''}
+            ${schema.notes ? `<p class="mt-1 text-xs text-muted"><b>Notas:</b> ${escapeHtml(schema.notes)}</p>` : ''}
+          </div>
+        </article>
+      `).join('')
+    : `<div class="${EMPTY_CLASS}">Crea tu primer esquema de tratamiento aquí. Luego podrás aplicarlo a tus pacientes en la pestaña Pacientes.</div>`;
+}
+
+async function loadSelectedPatientOverview(patientId) {
+  try {
+    const overview = (await api(`/patient-admin/patients/${patientId}/overview`)).data;
+    q('#no-patient-selected').classList.add('hidden');
+    q('#active-patient-workspace').classList.remove('hidden');
+
+    const cleanName = unescapeHtml(overview.patient_name);
+    const cleanEmail = unescapeHtml(overview.patient_email);
+
+    q('#selected-patient-name').textContent = cleanName;
+    q('#selected-patient-email').textContent = cleanEmail;
+
+    const meds = overview.medications || [];
+    const treatments = overview.treatments || [];
+    const doses = overview.today_doses || [];
+    const stats = overview.stats || {
+      medications_count: meds.length,
+      low_stock_count: meds.filter(m => m.stock <= 5).length,
+      active_treatments_count: treatments.length,
+      today_total: doses.length,
+      today_taken: doses.filter(d => d.status === 'taken').length,
+      today_pending: doses.filter(d => d.status === 'pending').length,
+      today_snoozed: doses.filter(d => d.status === 'snoozed').length,
+      today_missed: doses.filter(d => d.status === 'missed').length,
+      today_progress_rate: doses.length ? Math.round((doses.filter(d => d.status === 'taken').length / doses.length) * 100) : 0,
+      adherence_rate: 100,
+      history_taken_doses: 0,
+      history_missed_doses: 0
+    };
+
+    // Actualizar Estadísticas / Track en la pestaña Pacientes
+    q('#selected-patient-adherence-badge').textContent = `Adherencia: ${stats.adherence_rate}%`;
+    q('#patient-stat-adherence').textContent = `${stats.adherence_rate}%`;
+    q('#patient-stat-adherence-bar').style.width = `${Math.min(100, Math.max(0, stats.adherence_rate))}%`;
+    q('#patient-stat-history-summary').textContent = `${stats.history_taken_doses} tomadas · ${stats.history_missed_doses} omitidas`;
+
+    q('#patient-stat-today-progress').textContent = `${stats.today_progress_rate}%`;
+    q('#patient-stat-today-bar').style.width = `${Math.min(100, Math.max(0, stats.today_progress_rate))}%`;
+    q('#patient-stat-today-summary').textContent = `${stats.today_taken} de ${stats.today_total} dosis hoy`;
+
+    q('#patient-stat-taken').textContent = stats.today_taken;
+    q('#patient-stat-pending').textContent = stats.today_pending;
+    q('#patient-stat-snoozed').textContent = stats.today_snoozed;
+    q('#patient-stat-missed').textContent = stats.today_missed;
+
+    q('#patient-medication-select').innerHTML = meds.length
+      ? meds.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.presentation)})</option>`).join('')
+      : '<option value="">Registra primero un medicamento</option>';
+
+    q('#patient-medications-list').innerHTML = meds.length
+      ? meds.map(m => {
+          const isLow = m.stock <= 5;
+          const stockBadge = m.stock === 0
+            ? '<span class="rounded-full bg-[#ffe3dc] px-3 py-0.5 text-xs font-bold text-coral-dark">Agotado (0 disp.)</span>'
+            : isLow
+              ? `<span class="rounded-full bg-[#fff2cb] px-3 py-0.5 text-xs font-bold text-[#8a6416]">Stock bajo (${m.stock} disp.)</span>`
+              : `<span class="rounded-full bg-brand-mint px-3 py-0.5 text-xs font-bold text-brand-dark">${m.stock} disponibles</span>`;
+          return `
+            <article class="flex items-start justify-between gap-4 rounded-3xl border border-line/70 bg-[#fffdf7] p-5 shadow-sm transition hover:shadow-soft">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <strong class="font-serif text-2xl font-semibold text-ink">${escapeHtml(m.name)}</strong>
+                  ${stockBadge}
+                </div>
+                <span class="mt-1 block text-sm font-semibold text-[#a67c22]">${escapeHtml(m.presentation)}</span>
+                ${m.notes ? `<p class="mt-2 text-sm text-muted">${escapeHtml(m.notes)}</p>` : ''}
+              </div>
+              <button type="button" data-delete-patient-med="${m.id}" class="${DELETE_BTN} shrink-0" title="Eliminar medicamento">
+                ${ico('trash', 'h-5 w-5')}
+              </button>
+            </article>
+          `;
+        }).join('')
+      : '<div class="col-span-full rounded-3xl bg-[#f8faf8] p-8 text-center text-base text-muted">Este paciente aún no tiene medicamentos registrados. Usa el botón superior para añadir el primero.</div>';
+
+    // Actualizar Menú de Tratamientos en la pestaña Pacientes
+    q('#patient-treatments-list').innerHTML = treatments.length
+      ? treatments.map(t => `
+          <article class="flex flex-col justify-between gap-3 rounded-3xl border border-[#28637c]/15 bg-[#eef5f9] p-5 shadow-sm transition hover:shadow-soft">
+            <div class="min-w-0">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <span class="rounded-full bg-white px-3 py-0.5 text-xs font-bold text-[#28637c]">Pauta activa · ${t.duration_days} días</span>
+                  <strong class="mt-2 block font-serif text-2xl font-semibold text-ink [overflow-wrap:anywhere]">${escapeHtml(t.medication_name)}</strong>
+                  <span class="text-sm font-bold text-brand-dark">Dosis: ${escapeHtml(t.dosage)}</span>
+                </div>
+                <button type="button" data-delete-patient-treatment="${t.id}" class="${DELETE_BTN} shrink-0" title="Eliminar tratamiento">
+                  ${ico('trash', 'h-4 w-4')}
+                </button>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                ${(t.schedule_times || []).map(h => `
+                  <span class="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#28637c] shadow-sm">
+                    ${ico('clock', 'h-3.5 w-3.5')} ${escapeHtml(h)}
+                  </span>
+                `).join('')}
+              </div>
+              ${t.instructions ? `<p class="mt-2.5 text-xs text-muted"><b>Indicaciones:</b> ${escapeHtml(t.instructions)}</p>` : ''}
+            </div>
+            <div class="border-t border-[#28637c]/10 pt-2.5 text-xs text-muted">
+              Inicio: <b>${escapeHtml(t.start_date || 'Hoy')}</b>
+            </div>
+          </article>
+        `).join('')
+      : '<div class="col-span-full rounded-3xl bg-[#f8faf8] p-6 text-center text-sm text-muted">El paciente no tiene tratamientos activos. Programa una dosis o aplica un esquema rápido.</div>';
+
+    // Actualizar Track de Dosis de Hoy en la pestaña Pacientes
+    const labels = { pending: 'Pendiente', taken: 'Tomada', snoozed: 'Pospuesta', missed: 'Omitida' };
+    q('#patient-doses-list').innerHTML = doses.length
+      ? doses.map(d => {
+          const st = DOSE_STYLES[d.status] || DOSE_STYLES.pending;
+          return `
+            <article class="flex items-center justify-between gap-3 rounded-2xl p-4 ${st.box} shadow-sm">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full ${st.icon}">
+                  ${ico(st.name, 'h-5 w-5')}
+                </span>
+                <div class="min-w-0">
+                  <span class="font-serif text-lg font-bold text-ink">${formatTime(d.scheduled_at)}</span>
+                  <strong class="block truncate text-base font-bold text-ink">${escapeHtml(d.medication_name)}</strong>
+                  <span class="block text-xs font-semibold text-muted">${escapeHtml(d.dosage)}${d.instructions ? ` · ${escapeHtml(d.instructions)}` : ''}</span>
+                </div>
+              </div>
+              <span class="shrink-0 rounded-full px-3 py-1 text-xs font-bold ${st.badge}">${labels[d.status] || d.status}</span>
+            </article>
+          `;
+        }).join('')
+      : '<div class="col-span-full rounded-3xl bg-[#f8faf8] p-6 text-center text-sm text-muted">Sin dosis programadas para hoy.</div>';
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function submitLinkRequest(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const res = await api('/patient-admin/links', {
+      method: 'POST',
+      body: JSON.stringify({ patient_email: form.patient_email.value.trim() })
+    });
+    form.reset();
+    await loadPatientAdminDashboard();
+    showMessage(res.message || 'Solicitud de enlace enviada');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function submitSchemaTemplate(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const times = form.schedule_times.value.split(',').map(v => v.trim()).filter(Boolean);
+    await api('/patient-admin/schemas', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: form.title.value,
+        medication_name: form.medication_name.value,
+        presentation: form.presentation.value,
+        default_stock: Number(form.default_stock.value),
+        dosage: form.dosage.value,
+        schedule_times: times,
+        duration_days: Number(form.duration_days.value),
+        instructions: form.instructions.value || null,
+        notes: form.notes.value || null
+      })
+    });
+    closeModal(form.closest('.modal'));
+    form.reset();
+    await loadPatientAdminDashboard();
+    showMessage('Esquema rápido guardado');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function applySchemaToSelectedPatient(schemaId) {
+  if (!selectedPatientId) {
+    showMessage('Primero selecciona un paciente enlazado (aceptado)', true);
+    return;
+  }
+  if (!schemaId) {
+    showMessage('Selecciona un esquema para aplicar', true);
+    return;
+  }
+  try {
+    const res = await api(`/patient-admin/patients/${selectedPatientId}/apply-schema/${schemaId}`, {
+      method: 'POST'
+    });
+    await loadSelectedPatientOverview(selectedPatientId);
+    showMessage(res.message || 'Esquema aplicado al paciente');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function submitPatientMedication(event) {
+  event.preventDefault();
+  if (!selectedPatientId) {
+    showMessage('Selecciona un paciente enlazado primero', true);
+    return;
+  }
+  const form = event.currentTarget;
+  try {
+    await api(`/patient-admin/patients/${selectedPatientId}/medications`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: form.name.value,
+        presentation: form.presentation.value,
+        stock: Number(form.stock.value),
+        notes: form.notes.value || null
+      })
+    });
+    closeModal(form.closest('.modal'));
+    form.reset();
+    await loadSelectedPatientOverview(selectedPatientId);
+    showMessage('Medicamento registrado al paciente');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function submitPatientTreatment(event) {
+  event.preventDefault();
+  if (!selectedPatientId) {
+    showMessage('Selecciona un paciente enlazado primero', true);
+    return;
+  }
+  const form = event.currentTarget;
+  try {
+    const times = form.schedule_times.value.split(',').map(v => v.trim()).filter(Boolean);
+    await api(`/patient-admin/patients/${selectedPatientId}/treatments`, {
+      method: 'POST',
+      body: JSON.stringify({
+        medication_id: Number(form.medication_id.value),
+        dosage: form.dosage.value,
+        schedule_times: times,
+        start_date: form.start_date.value,
+        duration_days: Number(form.duration_days.value),
+        instructions: form.instructions.value || null
+      })
+    });
+    closeModal(form.closest('.modal'));
+    form.reset();
+    await loadSelectedPatientOverview(selectedPatientId);
+    showMessage('Tratamiento y dosis registrados al paciente');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function deletePatientMedication(medId) {
+  if (!selectedPatientId) return;
+  try {
+    await api(`/patient-admin/patients/${selectedPatientId}/medications/${medId}`, { method: 'DELETE' });
+    await loadSelectedPatientOverview(selectedPatientId);
+    showMessage('Medicamento del paciente eliminado');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function deletePatientTreatment(treatmentId) {
+  if (!selectedPatientId) return;
+  try {
+    await api(`/patient-admin/patients/${selectedPatientId}/treatments/${treatmentId}`, { method: 'DELETE' });
+    await loadSelectedPatientOverview(selectedPatientId);
+    showMessage('Tratamiento del paciente eliminado');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function deleteSchemaTemplate(schemaId) {
+  try {
+    await api(`/patient-admin/schemas/${schemaId}`, { method: 'DELETE' });
+    await loadPatientAdminDashboard();
+    showMessage('Esquema eliminado');
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   hydrateIcons();
   const login = document.querySelector('#login-form');
@@ -801,12 +1479,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-select-mode]').forEach(btn => {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.selectMode;
-      localStorage.setItem('meditrack_view_mode', mode);
-      if (mode === 'asistido') {
-        location.href = '/app/asistido';
-      } else {
-        location.href = '/app';
-      }
+      localStorage.removeItem(VIEW_MODE_KEY);
+      sessionStorage.setItem(VIEW_MODE_KEY, mode);
+      location.href = mode === 'asistido' ? '/app/asistido' : '/app';
     });
   });
 
@@ -854,6 +1529,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     q('#logout-button').addEventListener('click', async () => {
+      clearSavedViewMode();
       try {
         await api('/sessions/logout', { method: 'POST' });
       } catch (err) {
@@ -871,6 +1547,40 @@ document.addEventListener('DOMContentLoaded', () => {
     q('#medication-form').addEventListener('submit', submitMedication);
     q('#treatment-form').addEventListener('submit', submitTreatment);
     q('#medication-edit-form').addEventListener('submit', submitMedicationEdit);
+    q('#link-request-form').addEventListener('submit', submitLinkRequest);
+    q('#catalog-medication-form').addEventListener('submit', submitCatalogMedication);
+    q('#schema-form').addEventListener('submit', submitSchemaTemplate);
+    q('#patient-medication-form').addEventListener('submit', submitPatientMedication);
+    q('#patient-treatment-form').addEventListener('submit', submitPatientTreatment);
+
+    const schemaCatalogSelect = document.querySelector('#schema-catalog-med-select');
+    if (schemaCatalogSelect) {
+      schemaCatalogSelect.addEventListener('change', e => fillSchemaFromCatalog(e.target.value));
+    }
+
+    const assignCatalogSelect = document.querySelector('#assign-catalog-med-select');
+    if (assignCatalogSelect) {
+      assignCatalogSelect.addEventListener('change', e => fillAssignMedFromCatalog(e.target.value));
+    }
+
+    q('#gestor-refresh-btn').addEventListener('click', async () => {
+      await loadPatientAdminDashboard();
+      showMessage('Panel de pacientes actualizado');
+    });
+
+    q('#apply-selected-schema-btn').addEventListener('click', () => {
+      applySchemaToSelectedPatient(q('#quick-schema-select').value);
+    });
+
+    document.querySelectorAll('[data-fill-patient-email]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.querySelector('#patient-email-input');
+        if (input) {
+          input.value = btn.dataset.fillPatientEmail || '';
+          input.focus();
+        }
+      });
+    });
 
     document.querySelectorAll('[data-modal]').forEach(btn => {
       btn.addEventListener('click', () => openModal(q(`#${btn.dataset.modal}`)));
@@ -885,6 +1595,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('click', event => {
+      const gestorTabBtn = event.target.closest('[data-gestor-tab]');
+      if (gestorTabBtn) {
+        switchGestorTab(gestorTabBtn.dataset.gestorTab);
+        return;
+      }
+
+      const switchTabBtn = event.target.closest('[data-switch-gestor-tab]');
+      if (switchTabBtn) {
+        switchGestorTab(switchTabBtn.dataset.switchGestorTab);
+        return;
+      }
+
+      const linkDecisionBtn = event.target.closest('[data-link-decision]');
+      if (linkDecisionBtn) {
+        decidePatientLink(linkDecisionBtn.dataset.linkId, linkDecisionBtn.dataset.linkDecision);
+        return;
+      }
+
+      const removeLinkBtn = event.target.closest('[data-remove-link]');
+      if (removeLinkBtn) {
+        removePatientLink(removeLinkBtn.dataset.removeLink);
+        return;
+      }
+
+      const selectPatientBtn = event.target.closest('[data-select-patient]');
+      if (selectPatientBtn) {
+        selectedPatientId = Number(selectPatientBtn.dataset.selectPatient);
+        renderManagerLinks();
+        loadSelectedPatientOverview(selectedPatientId);
+        if (selectPatientBtn.dataset.openPatientTab === 'true') {
+          switchGestorTab('pacientes');
+        }
+        return;
+      }
+
+      const applySchemaBtn = event.target.closest('[data-apply-schema]');
+      if (applySchemaBtn) {
+        applySchemaToSelectedPatient(applySchemaBtn.dataset.applySchema);
+        return;
+      }
+
+      const deleteCatalogMedBtn = event.target.closest('[data-delete-catalog-med]');
+      if (deleteCatalogMedBtn) {
+        deleteCatalogMedication(deleteCatalogMedBtn.dataset.deleteCatalogMed);
+        return;
+      }
+
+      const deleteSchemaBtn = event.target.closest('[data-delete-schema]');
+      if (deleteSchemaBtn) {
+        deleteSchemaTemplate(deleteSchemaBtn.dataset.deleteSchema);
+        return;
+      }
+
+      const deletePatMedBtn = event.target.closest('[data-delete-patient-med]');
+      if (deletePatMedBtn) {
+        deletePatientMedication(deletePatMedBtn.dataset.deletePatientMed);
+        return;
+      }
+
+      const deletePatTreatBtn = event.target.closest('[data-delete-patient-treatment]');
+      if (deletePatTreatBtn) {
+        deletePatientTreatment(deletePatTreatBtn.dataset.deletePatientTreatment);
+        return;
+      }
+
       const asistidoActionBtn = event.target.closest('[data-asistido-action]');
       if (asistidoActionBtn) {
         decideDoseById(asistidoActionBtn.dataset.doseId, asistidoActionBtn.dataset.asistidoAction);
@@ -912,6 +1687,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (treatmentButton) deleteTreatment(treatmentButton);
     });
 
-    setInterval(loadDoses, 15000);
+    if (!['selector', 'gestor'].includes(PAGE())) {
+      setInterval(loadDoses, 15000);
+    }
   }
 });
