@@ -52,6 +52,24 @@
               <i data-icon="user" class="h-4 w-4 text-sun-deep"></i>
               <span>Usuario de prueba</span>
             </button>
+            <button
+              type="button"
+              class="demo-fill-btn sm:col-span-2 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-[#2f5d75] shadow-sm transition hover:border-[#28637c] hover:bg-[#deedf4] focus:outline-none focus:ring-4 focus:ring-[#28637c]/20 active:scale-[.98]"
+              data-demo-email="{{ demo_patient_admin_email }}"
+              data-demo-password="{{ demo_patient_admin_password }}"
+              data-demo-role="Administrador de pacientes"
+              title="Rellenar credenciales de Administrador de pacientes"
+            >
+              <i data-icon="clipboard" class="h-4 w-4 text-[#28637c]"></i>
+              <span>Admin. de pacientes de prueba (con 3 pacientes enlazados)</span>
+            </button>
+          </div>
+          <div class="mt-2.5 flex flex-wrap justify-center gap-1.5 border-t border-line/70 pt-2.5">
+            <span class="w-full text-[11px] font-semibold text-muted">Otros pacientes de prueba enlazados / pendientes:</span>
+            <button type="button" class="demo-fill-btn rounded-full border border-line bg-white px-2.5 py-1 text-xs font-bold text-brand-dark hover:bg-brand-mint" data-demo-email="elena@meditrack.app" data-demo-password="{{ demo_user_password }}" data-demo-role="Paciente Elena (Enlazada)">Elena (Enlazada)</button>
+            <button type="button" class="demo-fill-btn rounded-full border border-line bg-white px-2.5 py-1 text-xs font-bold text-brand-dark hover:bg-brand-mint" data-demo-email="roberto@meditrack.app" data-demo-password="{{ demo_user_password }}" data-demo-role="Paciente Roberto (Enlazado)">Roberto (Enlazado)</button>
+            <button type="button" class="demo-fill-btn rounded-full border border-line bg-white px-2.5 py-1 text-xs font-bold text-[#7a5c10] hover:bg-[#fbe7b0]" data-demo-email="lucia@meditrack.app" data-demo-password="{{ demo_user_password }}" data-demo-role="Paciente Lucía (Solicitud pendiente)">Lucía (Solicitud pendiente)</button>
+            <button type="button" class="demo-fill-btn rounded-full border border-line bg-white px-2.5 py-1 text-xs font-bold text-muted hover:bg-slate-100" data-demo-email="pedro@meditrack.app" data-demo-password="{{ demo_user_password }}" data-demo-role="Paciente Pedro (Sin enlazar)">Pedro (Sin enlazar)</button>
           </div>
           <p id="demo-fill-notice" class="mt-2.5 text-xs text-muted">Haz clic en un botón para completar los campos automáticamente</p>
         </div>
@@ -68,6 +86,11 @@
         <input id="register-email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
         <label for="register-password" class="mb-2 mt-6 block text-base font-semibold">Contraseña</label>
         <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Entre 8 y 72 caracteres" required minlength="8" maxlength="72" class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none placeholder:text-slate-500 focus:border-brand focus:ring-4 focus:ring-brand/20">
+        <label for="register-role" class="mb-2 mt-6 block text-base font-semibold">Tipo de cuenta</label>
+        <select id="register-role" name="role" class="min-h-[56px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/20">
+          <option value="user">Paciente / Usuario estándar</option>
+          <option value="patient_admin">Administrador de pacientes</option>
+        </select>
         <div id="register-error" class="mt-3 min-h-[24px] text-base font-semibold text-coral-dark" role="alert"></div>
         <button id="register-button" class="mt-4 flex min-h-[56px] w-full items-center justify-between rounded-full bg-brand px-6 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-70" type="submit">Crear cuenta <i data-icon="arrow" class="h-5 w-5"></i></button>
         <p class="mt-6 text-center text-base text-muted">¿Ya tienes una cuenta? <button type="button" id="show-login" class="min-h-[44px] px-1 font-bold text-brand underline underline-offset-4 hover:text-brand-dark">Iniciar sesión</button></p>

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from core.database import get_db
 from core.security import create_access_token
-from models import User
+from models import ROLE_ADMIN, ROLE_PATIENT_ADMIN, User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -43,6 +43,15 @@ def get_current_user(
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != "admin":
+    if current_user.role != ROLE_ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo un administrador puede realizar esta acción")
+    return current_user
+
+
+def require_patient_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != ROLE_PATIENT_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un administrador de pacientes puede realizar esta acción",
+        )
     return current_user

@@ -1,0 +1,480 @@
+{% extends "layouts/base.html" %}
+{% set active_page = "gestor" %}
+{% block title %}MediTrack | Administrador de Pacientes{% endblock %}
+{% block body_class %}app-page bg-paper text-ink{% endblock %}
+{% block body %}
+  <header class="sticky top-0 z-20 bg-white/95 shadow-soft backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
+      <a class="inline-flex min-h-[48px] items-center gap-3 text-xl font-bold text-brand-dark" href="/app/gestor">
+        <span class="grid h-10 w-10 place-items-center rounded-2xl bg-[#28637c] text-white shadow"><i data-icon="plus" class="h-6 w-6"></i></span>
+        <span>MediTrack <small class="ml-1 rounded-full bg-[#deedf4] px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-[#28637c]">Gestor</small></span>
+      </a>
+      <div class="flex items-center gap-2.5">
+        <div class="grid h-11 w-11 place-items-center rounded-full bg-[#deedf4] text-lg font-bold text-[#28637c]" id="user-avatar">G</div>
+        <div class="hidden leading-tight sm:block">
+          <strong id="user-name" class="block text-base">Cargando...</strong>
+          <small id="user-role" class="text-sm font-semibold text-[#28637c]">Administrador de pacientes</small>
+        </div>
+        <button id="profile-button" class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#deedf4] px-5 text-base font-bold text-[#28637c] transition hover:bg-[#28637c] hover:text-white focus:outline-none focus:ring-4 focus:ring-[#28637c]/30" type="button">
+          <i data-icon="pencil" class="h-5 w-5"></i><span class="max-sm:hidden">Editar perfil</span><span class="sm:hidden">Perfil</span>
+        </button>
+        <button id="logout-button" class="grid h-12 w-12 place-items-center rounded-full bg-[#f1f5f1] text-ink transition hover:bg-[#ffe5df] hover:text-coral-dark focus:outline-none focus:ring-4 focus:ring-coral/30" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <i data-icon="logout" class="h-6 w-6"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 pb-32 pt-8 sm:px-8 sm:pt-10">
+    <div id="app-message" class="pointer-events-none fixed bottom-6 right-4 z-40 max-w-[calc(100%-2rem)] translate-y-3 rounded-2xl bg-brand-dark px-5 py-4 text-base font-semibold text-white opacity-0 shadow-lift transition sm:right-6" role="status"></div>
+
+    <!-- Navegación por Pestañas del Administrador de Pacientes -->
+    <nav class="mb-8 overflow-x-auto rounded-full bg-white p-1.5 shadow-soft" aria-label="Secciones del Administrador de Pacientes">
+      <div class="flex min-w-max gap-1.5 sm:min-w-0" role="tablist">
+        <button type="button" role="tab" aria-selected="true" data-gestor-tab="main"
+          class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-[#28637c] px-5 text-base font-bold text-white shadow transition focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+          <i data-icon="home" class="h-5 w-5"></i><span>Principal</span>
+        </button>
+        <button type="button" role="tab" aria-selected="false" data-gestor-tab="medicamentos"
+          class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full px-5 text-base font-bold text-muted transition hover:bg-[#deedf4]/70 hover:text-[#28637c] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+          <i data-icon="beaker" class="h-5 w-5"></i><span>Medicamentos</span>
+        </button>
+        <button type="button" role="tab" aria-selected="false" data-gestor-tab="esquemas"
+          class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full px-5 text-base font-bold text-muted transition hover:bg-[#deedf4]/70 hover:text-[#28637c] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+          <i data-icon="clipboard" class="h-5 w-5"></i><span>Esquemas de tratamiento</span>
+        </button>
+        <button type="button" role="tab" aria-selected="false" data-gestor-tab="pacientes"
+          class="inline-flex min-h-[50px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-full px-5 text-base font-bold text-muted transition hover:bg-[#deedf4]/70 hover:text-[#28637c] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+          <i data-icon="user" class="h-5 w-5"></i><span>Pacientes</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ================================================================== -->
+    <!-- PESTAÑA 1: PRINCIPAL (MAIN)                                        -->
+    <!-- ================================================================== -->
+    <div data-gestor-panel="main" class="space-y-8">
+      <!-- Encabezado y fecha -->
+      <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <span class="mb-2 inline-block rounded-full bg-[#deedf4] px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#28637c]">Gestión clínica y familiar</span>
+          <h1 class="font-serif text-4xl font-semibold leading-tight sm:text-5xl">Hola, <span id="welcome-name">Laura</span>.</h1>
+          <p class="mt-2 text-lg text-muted">Crea tu catálogo de medicamentos, configura esquemas de tratamiento y asígnalos a tus pacientes enlazados.</p>
+        </div>
+        <div class="self-start rounded-3xl bg-white px-6 py-3 shadow-soft sm:self-auto sm:text-right">
+          <span id="day-name" class="block text-sm font-bold tracking-widest text-[#28637c]">HOY</span>
+          <strong id="today-date" class="font-serif text-3xl">--</strong>
+        </div>
+      </section>
+
+      <!-- Tarjetas de resumen global (4 indicadores) -->
+      <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <button type="button" data-switch-gestor-tab="pacientes" class="flex items-center gap-4 rounded-3xl bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand-mint text-brand"><i data-icon="user" class="h-7 w-7"></i></span>
+          <div class="flex-1"><strong id="gestor-linked-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-sm font-semibold text-muted">Pacientes enlazados</span></div>
+        </button>
+        <button type="button" data-switch-gestor-tab="pacientes" class="flex items-center gap-4 rounded-3xl bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#fff2cb] text-[#a67c22]"><i data-icon="clock" class="h-7 w-7"></i></span>
+          <div class="flex-1"><strong id="gestor-pending-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-sm font-semibold text-muted">Solicitudes pendientes</span></div>
+        </button>
+        <button type="button" data-switch-gestor-tab="medicamentos" class="flex items-center gap-4 rounded-3xl bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#fce8d5] text-[#9a5b13]"><i data-icon="beaker" class="h-7 w-7"></i></span>
+          <div class="flex-1"><strong id="gestor-catalog-meds-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-sm font-semibold text-muted">Medicamentos creados</span></div>
+        </button>
+        <button type="button" data-switch-gestor-tab="esquemas" class="flex items-center gap-4 rounded-3xl bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#deedf4] text-[#28637c]"><i data-icon="clipboard" class="h-7 w-7"></i></span>
+          <div class="flex-1"><strong id="gestor-schemas-count" class="block font-serif text-4xl leading-none">0</strong><span class="text-sm font-semibold text-muted">Esquemas creados</span></div>
+        </button>
+      </section>
+
+      <!-- Flujo guiado en 3 pasos -->
+      <section class="grid gap-4 md:grid-cols-3">
+        <button type="button" data-switch-gestor-tab="medicamentos" class="group flex flex-col justify-between rounded-3xl bg-white p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <div>
+            <span class="inline-block rounded-full bg-[#fff2cb] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#8a6416]">Paso 1 · Catálogo</span>
+            <h2 class="mt-3 font-serif text-2xl font-semibold text-ink">Crear Medicamentos</h2>
+            <p class="mt-1 text-sm text-muted">Registra los medicamentos base que usarás en tus esquemas o que asignarás directamente a tus pacientes.</p>
+          </div>
+          <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#28637c] group-hover:underline">Ir a Medicamentos <i data-icon="arrow" class="h-4 w-4"></i></span>
+        </button>
+        <button type="button" data-switch-gestor-tab="esquemas" class="group flex flex-col justify-between rounded-3xl bg-white p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <div>
+            <span class="inline-block rounded-full bg-[#deedf4] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#28637c]">Paso 2 · Plantillas</span>
+            <h2 class="mt-3 font-serif text-2xl font-semibold text-ink">Crear Esquemas</h2>
+            <p class="mt-1 text-sm text-muted">Configura plantillas de tratamiento combinando tus medicamentos con dosis, horarios y duración.</p>
+          </div>
+          <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#28637c] group-hover:underline">Ir a Esquemas <i data-icon="arrow" class="h-4 w-4"></i></span>
+        </button>
+        <button type="button" data-switch-gestor-tab="pacientes" class="group flex flex-col justify-between rounded-3xl bg-white p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+          <div>
+            <span class="inline-block rounded-full bg-brand-mint px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand-dark">Paso 3 · Seguimiento</span>
+            <h2 class="mt-3 font-serif text-2xl font-semibold text-ink">Pacientes y Track</h2>
+            <p class="mt-1 text-sm text-muted">Selecciona un paciente para ver sus estadísticas, aplicarle esquemas creados o asignarle medicamentos.</p>
+          </div>
+          <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brand group-hover:underline">Ir a Pacientes <i data-icon="arrow" class="h-4 w-4"></i></span>
+        </button>
+      </section>
+
+      <!-- Vincular paciente y vista rápida de solicitudes/pacientes -->
+      <section class="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        <div class="min-w-0 rounded-[2rem] bg-white p-6 shadow-soft">
+          <p class="mb-1 text-xs font-bold uppercase tracking-widest text-[#28637c]">Vincular usuario</p>
+          <h2 class="font-serif text-2xl font-semibold">Enviar solicitud de enlace</h2>
+          <p class="mt-1 text-sm text-muted">Ingresa el correo del paciente. Cuando acepte tu solicitud, podrás asignarle medicamentos y esquemas en la pestaña Pacientes.</p>
+          <form id="link-request-form" class="mt-4">
+            <label for="patient-email-input" class="block text-sm font-semibold">Correo del paciente</label>
+            <input id="patient-email-input" name="patient_email" type="email" required placeholder="paciente@correo.com" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base outline-none focus:border-[#28637c] focus:ring-4 focus:ring-[#28637c]/20">
+            {% if show_demo_hint %}
+            <div class="mt-2.5 flex flex-wrap gap-1.5">
+              <button type="button" data-fill-patient-email="pedro@meditrack.app" class="inline-flex items-center gap-1 rounded-full bg-[#eef5f9] px-3 py-1 text-xs font-bold text-[#28637c] transition hover:bg-[#deedf4]">
+                <i data-icon="sparkles" class="h-3.5 w-3.5"></i> Pedro (pedro@meditrack.app · sin enlazar)
+              </button>
+            </div>
+            {% endif %}
+            <button type="submit" class="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#28637c] px-5 text-base font-bold text-white shadow transition hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+              <i data-icon="plus" class="h-5 w-5"></i> Enviar solicitud de enlace
+            </button>
+          </form>
+        </div>
+
+        <div class="min-w-0 rounded-[2rem] bg-white p-6 shadow-soft">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-brand">Red de cuidado</p>
+              <h2 class="font-serif text-2xl font-semibold">Mis pacientes y solicitudes</h2>
+            </div>
+            <button type="button" id="gestor-refresh-btn" class="inline-flex min-h-[42px] shrink-0 items-center gap-1.5 rounded-full bg-[#f1f5f1] px-4 text-sm font-bold text-brand-dark transition hover:bg-brand-mint">
+              <i data-icon="refresh" class="h-4 w-4"></i> Actualizar
+            </button>
+          </div>
+          <div id="manager-links-list" class="grid gap-3">
+            <div class="py-6 text-center text-sm text-muted">Cargando enlaces...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- PESTAÑA 2: MEDICAMENTOS (CATÁLOGO PARA ESQUEMAS Y PACIENTES)       -->
+    <!-- ================================================================== -->
+    <div data-gestor-panel="medicamentos" class="hidden space-y-6">
+      <section class="rounded-[2rem] bg-white p-6 shadow-soft sm:p-8">
+        <div class="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-center md:justify-between">
+          <div class="flex min-w-0 items-center gap-3.5">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#fff2cb] text-[#a67c22]"><i data-icon="beaker" class="h-7 w-7"></i></span>
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[#a67c22]">Catálogo del Administrador de Pacientes</p>
+              <h2 class="font-serif text-3xl font-semibold">Mis medicamentos base</h2>
+              <p class="text-sm text-muted">Crea aquí los medicamentos que usarás para armar tus <b>Esquemas de tratamiento</b> o para asignarlos directamente en la pestaña <b>Pacientes</b>.</p>
+            </div>
+          </div>
+          <button type="button" data-modal="catalog-medication-modal" class="inline-flex min-h-[50px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand px-6 text-base font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">
+            <i data-icon="plus" class="h-5 w-5"></i> Crear medicamento
+          </button>
+        </div>
+
+        <!-- Lista del catálogo de medicamentos creados por el gestor -->
+        <div id="catalog-medications-list" class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div class="col-span-full py-8 text-center text-sm text-muted">Cargando catálogo de medicamentos...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- PESTAÑA 3: ESQUEMAS DE TRATAMIENTO (SOLO CREAR Y GESTIONAR)        -->
+    <!-- ================================================================== -->
+    <div data-gestor-panel="esquemas" class="hidden space-y-6">
+      <section class="rounded-[2rem] bg-white p-6 shadow-soft sm:p-8">
+        <div class="mb-6 flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-center md:justify-between">
+          <div class="flex min-w-0 items-center gap-3.5">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#deedf4] text-[#28637c]"><i data-icon="clipboard" class="h-7 w-7"></i></span>
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[#28637c]">Configuración de plantillas</p>
+              <h2 class="font-serif text-3xl font-semibold leading-tight">Mis esquemas de tratamiento</h2>
+              <p class="text-sm text-muted">Crea y configura tus esquemas usando tus medicamentos. Para aplicar un esquema a un paciente, ve a la pestaña <b>Pacientes</b>.</p>
+            </div>
+          </div>
+          <button type="button" data-modal="schema-modal" class="inline-flex min-h-[50px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#28637c] px-6 text-base font-bold text-white shadow transition hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+            <i data-icon="plus" class="h-5 w-5"></i> Crear esquema de tratamiento
+          </button>
+        </div>
+        <div id="schema-list" class="grid gap-4 md:grid-cols-2"></div>
+      </section>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- PESTAÑA 4: PACIENTES (APLICAR ESQUEMAS, ASIGNAR MEDS, TRACK)       -->
+    <!-- ================================================================== -->
+    <div data-gestor-panel="pacientes" class="hidden space-y-6">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <!-- Columna izquierda: Directorio de Pacientes -->
+        <aside class="min-w-0 space-y-4">
+          <div class="rounded-[2rem] bg-white p-5 shadow-soft sm:p-6">
+            <div class="mb-4 flex items-center justify-between gap-2">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-[#28637c]">Directorio</p>
+                <h2 class="font-serif text-2xl font-semibold">Mis pacientes</h2>
+              </div>
+              <span class="rounded-full bg-[#deedf4] px-3 py-1 text-xs font-bold text-[#28637c]">Selecciona uno</span>
+            </div>
+            <p class="mb-4 text-sm text-muted">Selecciona un paciente enlazado para abrir sus tratamientos, aplicarle un esquema creado, asignarle medicamentos y ver sus estadísticas/track.</p>
+            <div id="patients-directory-list" class="grid gap-3"></div>
+          </div>
+        </aside>
+
+        <!-- Columna derecha: Menú del Paciente Seleccionado -->
+        <section id="selected-patient-section" class="min-w-0 rounded-[2rem] border-2 border-[#28637c]/20 bg-white p-6 shadow-lift sm:p-8">
+          <div id="no-patient-selected" class="py-12 text-center">
+            <span class="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-[#deedf4] text-[#28637c]"><i data-icon="user" class="h-8 w-8"></i></span>
+            <h2 class="font-serif text-2xl font-semibold">Selecciona un paciente enlazado</h2>
+            <p class="mt-1 text-base text-muted">Elige un paciente de la lista para ver sus estadísticas/track, aplicarle esquemas de tratamiento o asignarle medicamentos.</p>
+          </div>
+
+          <div id="active-patient-workspace" class="hidden min-w-0 space-y-8">
+            <!-- Cabecera del paciente seleccionado -->
+            <div class="flex flex-col gap-4 border-b border-line pb-5">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-block whitespace-nowrap rounded-full bg-brand-mint px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand-dark">Paciente seleccionado</span>
+                  <span id="selected-patient-adherence-badge" class="inline-block whitespace-nowrap rounded-full bg-[#deedf4] px-3 py-1 text-xs font-bold text-[#28637c]">Adherencia: 100%</span>
+                </div>
+                <h2 id="selected-patient-name" class="mt-2 font-serif text-3xl font-semibold sm:text-4xl">--</h2>
+                <p id="selected-patient-email" class="text-sm font-medium text-muted">--</p>
+              </div>
+              <div class="flex flex-wrap gap-2.5">
+                <button type="button" data-modal="patient-medication-modal" class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand px-5 text-sm font-bold text-white shadow transition hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/30">
+                  <i data-icon="beaker" class="h-5 w-5"></i> Asignar medicamento al paciente
+                </button>
+                <button type="button" data-modal="patient-treatment-modal" class="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#28637c] px-5 text-sm font-bold text-white shadow transition hover:bg-[#1a4457] focus:outline-none focus:ring-4 focus:ring-[#28637c]/30">
+                  <i data-icon="calendar" class="h-5 w-5"></i> Programar tratamiento / dosis
+                </button>
+              </div>
+            </div>
+
+            <!-- BLOQUE: Aplicar Esquema Creado al Paciente Seleccionado (Exclusivo en Pacientes) -->
+            <div class="overflow-hidden rounded-3xl bg-gradient-to-r from-[#28637c] to-[#1e4a5d] p-5 text-white shadow-soft sm:p-6">
+              <div class="flex flex-col gap-4">
+                <div class="min-w-0">
+                  <span class="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider">Aplicar esquema creado</span>
+                  <h3 class="mt-2 font-serif text-2xl font-semibold leading-snug">Asignar esquema de tratamiento a este paciente</h3>
+                  <p class="mt-1 text-sm text-[#d7eef7]">Selecciona uno de tus esquemas creados para registrarle el medicamento y programar sus horarios automáticamente.</p>
+                </div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <select id="quick-schema-select" class="min-h-[48px] w-full min-w-0 flex-1 truncate rounded-2xl border border-white/20 bg-white px-4 py-2 text-base font-semibold text-ink outline-none focus:ring-4 focus:ring-white/30"></select>
+                  <button type="button" id="apply-selected-schema-btn" class="inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand px-6 text-base font-bold text-white shadow-md transition hover:bg-brand-dark">
+                    <i data-icon="sparkles" class="h-5 w-5"></i> Aplicar esquema al paciente
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOQUE 1: Estadísticas y Track del Paciente -->
+            <div>
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-widest text-[#28637c]">Estadísticas y Track en tiempo real</p>
+                  <h3 class="font-serif text-2xl font-semibold">Cumplimiento y adherencia del paciente</h3>
+                </div>
+              </div>
+
+              <!-- Barras de Adherencia y Avance del Día -->
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-3xl bg-[#eef5f9] p-5">
+                  <div class="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <span class="text-xs font-bold uppercase tracking-wider text-[#28637c]">Tasa de adherencia global</span>
+                      <strong id="patient-stat-adherence" class="mt-1 block font-serif text-4xl text-[#1b4658]">100%</strong>
+                    </div>
+                    <span id="patient-stat-history-summary" class="text-xs font-semibold text-muted">0 tomadas · 0 omitidas</span>
+                  </div>
+                  <div class="mt-3 h-3 w-full overflow-hidden rounded-full bg-white">
+                    <div id="patient-stat-adherence-bar" class="h-full rounded-full bg-[#28637c] transition-all duration-300" style="width: 100%"></div>
+                  </div>
+                </div>
+
+                <div class="rounded-3xl bg-[#eef8f2] p-5">
+                  <div class="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <span class="text-xs font-bold uppercase tracking-wider text-brand-dark">Avance de tomas de hoy</span>
+                      <strong id="patient-stat-today-progress" class="mt-1 block font-serif text-4xl text-brand-dark">0%</strong>
+                    </div>
+                    <span id="patient-stat-today-summary" class="text-xs font-semibold text-muted">0 de 0 dosis hoy</span>
+                  </div>
+                  <div class="mt-3 h-3 w-full overflow-hidden rounded-full bg-white">
+                    <div id="patient-stat-today-bar" class="h-full rounded-full bg-brand transition-all duration-300" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contadores de Track de Hoy -->
+              <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div class="rounded-2xl border border-line/70 bg-white p-4 text-center shadow-sm">
+                  <span class="mx-auto mb-1.5 grid h-9 w-9 place-items-center rounded-full bg-brand-mint text-brand"><i data-icon="check" class="h-5 w-5"></i></span>
+                  <strong id="patient-stat-taken" class="block font-serif text-2xl leading-none text-ink">0</strong>
+                  <span class="mt-1 block text-xs font-bold text-muted">Tomadas hoy</span>
+                </div>
+                <div class="rounded-2xl border border-line/70 bg-white p-4 text-center shadow-sm">
+                  <span class="mx-auto mb-1.5 grid h-9 w-9 place-items-center rounded-full bg-[#fff2cb] text-[#a67c22]"><i data-icon="clock" class="h-5 w-5"></i></span>
+                  <strong id="patient-stat-pending" class="block font-serif text-2xl leading-none text-ink">0</strong>
+                  <span class="mt-1 block text-xs font-bold text-muted">Pendientes hoy</span>
+                </div>
+                <div class="rounded-2xl border border-line/70 bg-white p-4 text-center shadow-sm">
+                  <span class="mx-auto mb-1.5 grid h-9 w-9 place-items-center rounded-full bg-[#deedf4] text-[#28637c]"><i data-icon="bell" class="h-5 w-5"></i></span>
+                  <strong id="patient-stat-snoozed" class="block font-serif text-2xl leading-none text-ink">0</strong>
+                  <span class="mt-1 block text-xs font-bold text-muted">Pospuestas</span>
+                </div>
+                <div class="rounded-2xl border border-line/70 bg-white p-4 text-center shadow-sm">
+                  <span class="mx-auto mb-1.5 grid h-9 w-9 place-items-center rounded-full bg-[#ffe3dc] text-coral-dark"><i data-icon="alert" class="h-5 w-5"></i></span>
+                  <strong id="patient-stat-missed" class="block font-serif text-2xl leading-none text-ink">0</strong>
+                  <span class="mt-1 block text-xs font-bold text-muted">Omitidas hoy</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOQUE 2: Menú de Tratamientos Activos del Paciente -->
+            <div class="border-t border-line pt-6">
+              <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold uppercase tracking-widest text-brand">Menú de tratamientos del paciente</p>
+                  <h3 class="font-serif text-2xl font-semibold">Tratamientos y pautas horarias activas</h3>
+                </div>
+                <button type="button" data-modal="patient-treatment-modal" class="inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[#28637c] px-4 text-xs font-bold text-white transition hover:bg-[#1a4457]">
+                  <i data-icon="plus" class="h-4 w-4"></i> Programar tratamiento
+                </button>
+              </div>
+              <div id="patient-treatments-list" class="grid gap-4 md:grid-cols-2"></div>
+            </div>
+
+            <!-- BLOQUE 3: Medicamentos Asignados al Paciente -->
+            <div class="border-t border-line pt-6">
+              <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold uppercase tracking-widest text-[#a67c22]">Botiquín del paciente</p>
+                  <h3 class="font-serif text-2xl font-semibold">Medicamentos asignados al paciente</h3>
+                </div>
+                <button type="button" data-modal="patient-medication-modal" class="inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-4 text-xs font-bold text-white transition hover:bg-brand-dark">
+                  <i data-icon="plus" class="h-4 w-4"></i> Asignar medicamento
+                </button>
+              </div>
+              <div id="patient-medications-list" class="grid gap-3 md:grid-cols-2"></div>
+            </div>
+
+            <!-- BLOQUE 4: Track Cronológico de Dosis de Hoy -->
+            <div class="border-t border-line pt-6">
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-widest text-[#28637c]">Seguimiento diario (Track)</p>
+                  <h3 class="font-serif text-2xl font-semibold">Cronograma de dosis de hoy</h3>
+                </div>
+              </div>
+              <div id="patient-doses-list" class="grid gap-3 sm:grid-cols-2"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  {% include "partials/modal_profile.html" %}
+
+  <!-- Modal 1: Crear Medicamento en el Catálogo del Gestor (Pestaña Medicamentos) -->
+  <div id="catalog-medication-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm">
+    <form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="catalog-medication-form">
+      <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+      <p class="mb-1 text-sm font-bold uppercase tracking-widest text-[#a67c22]">Catálogo para esquemas y pacientes</p>
+      <h2 class="font-serif text-3xl font-semibold">Crear medicamento base</h2>
+      <label class="mb-2 mt-5 block text-base font-semibold">Nombre del medicamento
+        <input name="name" required minlength="2" placeholder="Ej. Losartán" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand">
+      </label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Presentación
+        <input name="presentation" required minlength="2" value="Tabletas 50 mg" placeholder="Ej. Tabletas 50 mg" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand">
+      </label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Stock inicial sugerido
+        <input name="stock" type="number" min="0" value="30" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-brand">
+      </label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Notas / Uso clínico <span class="text-sm font-normal text-muted">opcional</span>
+        <textarea name="notes" rows="2" placeholder="Ej. Antihipertensivo de control diario" class="mt-2 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-base font-normal outline-none focus:border-brand"></textarea>
+      </label>
+      <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark" type="submit">Guardar en mi catálogo</button>
+    </form>
+  </div>
+
+  <!-- Modal 2: Crear Esquema de Tratamiento (Pestaña Esquemas - usa medicamentos del catálogo) -->
+  <div id="schema-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm">
+    <form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="schema-form">
+      <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+      <p class="mb-1 text-sm font-bold uppercase tracking-widest text-[#28637c]">Plantilla reutilizable</p>
+      <h2 class="font-serif text-3xl font-semibold">Crear esquema de tratamiento</h2>
+      <label class="mt-4 block text-base font-semibold">Nombre del esquema
+        <input name="title" required minlength="2" placeholder="Ej. Hipertensión Estándar" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+      </label>
+      <label class="mt-4 block text-base font-semibold">Seleccionar medicamento de mi catálogo
+        <select id="schema-catalog-med-select" class="mt-1.5 min-h-[50px] w-full min-w-0 truncate rounded-2xl border border-[#28637c]/30 bg-[#eef5f9] px-4 py-2.5 text-base font-semibold text-[#1b4658] outline-none focus:border-[#28637c]"></select>
+      </label>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <label class="block text-base font-semibold">Medicamento
+          <input name="medication_name" id="schema-med-name-input" required minlength="2" placeholder="Ej. Losartán" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+        </label>
+        <label class="block text-base font-semibold">Presentación
+          <input name="presentation" id="schema-med-presentation-input" required minlength="2" value="Tabletas 50 mg" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+        </label>
+      </div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <label class="block text-base font-semibold">Dosis por toma
+          <input name="dosage" required value="1 tableta" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+        </label>
+        <label class="block text-base font-semibold">Stock inicial
+          <input name="default_stock" id="schema-med-stock-input" type="number" min="0" value="30" required class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+        </label>
+        <label class="block text-base font-semibold">Duración (días)
+          <input name="duration_days" type="number" min="1" value="30" required class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+        </label>
+      </div>
+      <label class="mt-4 block text-base font-semibold">Horarios de toma <span class="text-sm font-normal text-muted">(separados por coma)</span>
+        <input name="schedule_times" required placeholder="08:00, 20:00" value="08:00, 20:00" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+      </label>
+      <label class="mt-4 block text-base font-semibold">Indicaciones de toma <span class="text-sm font-normal text-muted">opcional</span>
+        <input name="instructions" placeholder="Ej. Tomar con agua después de comer" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+      </label>
+      <label class="mt-4 block text-base font-semibold">Notas del medicamento <span class="text-sm font-normal text-muted">opcional</span>
+        <input name="notes" id="schema-med-notes-input" placeholder="Ej. Control de presión arterial" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-[#28637c]">
+      </label>
+      <button class="mt-6 min-h-[56px] w-full rounded-full bg-[#28637c] px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-[#1a4457]" type="submit">Guardar esquema</button>
+    </form>
+  </div>
+
+  <!-- Modal 3: Asignar Medicamento al Paciente Seleccionado (Pestaña Pacientes - usa medicamentos del catálogo) -->
+  <div id="patient-medication-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm">
+    <form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="patient-medication-form">
+      <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+      <p class="mb-1 text-sm font-bold uppercase tracking-widest text-brand">Paciente enlazado</p>
+      <h2 class="font-serif text-3xl font-semibold">Asignar medicamento al paciente</h2>
+      <label class="mt-4 block text-base font-semibold">Elegir de mi catálogo de medicamentos
+        <select id="assign-catalog-med-select" class="mt-1.5 min-h-[50px] w-full min-w-0 truncate rounded-2xl border border-brand/30 bg-[#eef8f2] px-4 py-2.5 text-base font-semibold text-brand-dark outline-none focus:border-brand"></select>
+      </label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Nombre<input name="name" id="assign-med-name-input" required minlength="2" placeholder="Ej. Acetaminofén" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-brand"></label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Presentación<input name="presentation" id="assign-med-presentation-input" required minlength="2" value="Tableta" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-brand"></label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Existencias a entregar/registrar<input name="stock" id="assign-med-stock-input" type="number" min="0" value="30" class="mt-1.5 min-h-[50px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-brand"></label>
+      <label class="mb-2 mt-4 block text-base font-semibold">Notas <span class="text-sm font-normal text-muted">opcional</span><textarea name="notes" id="assign-med-notes-input" rows="2" placeholder="Indicaciones adicionales" class="mt-1.5 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-2.5 text-base font-normal outline-none focus:border-brand"></textarea></label>
+      <button class="mt-5 min-h-[56px] w-full rounded-full bg-brand px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-brand-dark" type="submit">Asignar medicamento al paciente</button>
+    </form>
+  </div>
+
+  <!-- Modal 4: Programar Dosis / Tratamiento al Paciente Seleccionado (Pestaña Pacientes) -->
+  <div id="patient-treatment-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-[#12302a]/60 p-4 backdrop-blur-sm">
+    <form class="modal-card relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-[2rem] bg-white p-6 shadow-lift sm:p-8" id="patient-treatment-form">
+      <button type="button" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-slate-100 hover:text-ink" data-close aria-label="Cerrar"><i data-icon="x" class="h-6 w-6"></i></button>
+      <p class="mb-1 text-sm font-bold uppercase tracking-widest text-[#28637c]">Paciente enlazado</p>
+      <h2 class="font-serif text-3xl font-semibold">Programar dosis y tratamiento</h2>
+      <label class="mb-2 mt-5 block text-base font-semibold">Medicamento del paciente<select name="medication_id" id="patient-medication-select" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></select></label>
+      <label class="mb-2 mt-5 block text-base font-semibold">¿Cuánto tomar?<input name="dosage" required placeholder="Ej. 1 tableta" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></label>
+      <label class="mb-2 mt-5 block text-base font-semibold">Horarios <span class="text-sm font-normal text-muted">(HH:MM separados por coma)</span><input name="schedule_times" type="text" required placeholder="08:00, 20:00" class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></label>
+      <div class="grid gap-x-3 sm:grid-cols-2">
+        <label class="mb-2 mt-5 block text-base font-semibold">Fecha de inicio<input name="start_date" id="patient-treatment-start-date" type="date" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></label>
+        <label class="mb-2 mt-5 block text-base font-semibold">Duración (días)<input name="duration_days" type="number" min="1" value="14" required class="mt-2 min-h-[52px] w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></label>
+      </div>
+      <label class="mb-2 mt-5 block text-base font-semibold">Indicaciones <span class="text-sm font-normal text-muted">opcional</span><textarea name="instructions" rows="2" placeholder="Después de comer..." class="mt-2 w-full rounded-2xl border border-line bg-[#f6f9f4] px-4 py-3 text-lg font-normal outline-none focus:border-[#28637c]"></textarea></label>
+      <button class="mt-5 min-h-[56px] w-full rounded-full bg-[#28637c] px-5 py-4 text-lg font-bold text-white shadow-md transition hover:bg-[#1a4457]" type="submit">Programar dosis al paciente</button>
+    </form>
+  </div>
+{% endblock %}
