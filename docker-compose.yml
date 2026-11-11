@@ -1,0 +1,31 @@
+services:
+  meditrack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meditrack-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-meditrack-local-7f4b9d2c8a1e6f3b5d7c9a2e4f6b8d1c}
+      DATABASE_URL: sqlite:////app/data/meditrack.db
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/Bogota}
+      TIMEZONE_OFFSET_HOURS: ${TIMEZONE_OFFSET_HOURS:--5}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+    volumes:
+      - meditrack_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  meditrack_data:
+    driver: local
