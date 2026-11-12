@@ -1,0 +1,85 @@
+# ============================================================================
+# MediTrack - Protección de lógica backend y despliegue seguro en Apache
+# ============================================================================
+
+# Deshabilitar listado de directorios y ejecución CGI
+Options -Indexes -ExecCGI
+
+# Evitar que Apache adivine extensiones o negocie archivos internos
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+ServerSignature Off
+AddDefaultCharset UTF-8
+
+# ============================================================================
+# 1. Bloquear acceso HTTP directo a código Python, bases de datos y secretos
+# ============================================================================
+<FilesMatch "\.(py|pyc|pyo|pyd|whl|db|sqlite|sqlite3|sql|env|log|ini|yml|yaml|toml|md|lock|bak|swp|tmp|sh)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<FilesMatch "^(\.env.*|\.git.*|\.htaccess|\.dockerignore|Dockerfile|docker-compose\.ya?ml|requirements\.txt|alembic\.ini|LICENSE|CHANGELOG\.md|README\.md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ============================================================================
+# 2. Proteger carpetas internas de la lógica de negocio con mod_rewrite
+# ============================================================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloquear método TRACE/TRACK
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)$ [NC]
+    RewriteRule .* - [F,L]
+
+    # Bloquear archivos y carpetas ocultas (.env, .git, .venv, .pytest_cache, etc.)
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+    # Denegar acceso directo a módulos Python, migraciones, plantillas, tests y datos
+    RewriteRule ^(core|models|schemas|services|routers|alembic|tests|templates|__pycache__|\.venv|venv|env|data)(/|$) - [F,L,NC]
+
+    # ========================================================================
+    # 3. Proxy inverso hacia FastAPI / Uvicorn (Opcional si usas Apache Proxy)
+    # Descomenta las siguientes líneas cuando Uvicorn esté corriendo en 127.0.0.1:8000
+    # y tengas habilitados mod_proxy y mod_proxy_http en Apache:
+    #
+    # RewriteCond %{REQUEST_URI} !^/static/ [NC]
+    # RewriteRule ^(.*)$ http://127.0.0.1:8000/$1 [P,L]
+    # ========================================================================
+</IfModule>
+
+# ============================================================================
+# 4. Cabeceras de seguridad HTTP y caché para recursos estáticos
+# ============================================================================
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header unset X-Powered-By
+    Header unset Server
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+</IfModule>
