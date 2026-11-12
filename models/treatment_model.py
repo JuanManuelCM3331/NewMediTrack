@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -18,7 +18,7 @@ class Treatment(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
-    active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_app_now_naive, nullable=False)
 
     owner = relationship("User", back_populates="treatments")

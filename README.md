@@ -55,7 +55,7 @@ Aplicación web desarrollada con **FastAPI**, **SQLAlchemy 2.0**, **Jinja2** y *
 ## Tecnologías utilizadas
 
 - **Backend**: Python 3.11+ (probado con Python 3.14), FastAPI `0.140.13`, Uvicorn `0.34.0`, Pydantic `2.13.4`
-- **Base de datos y ORM**: SQLAlchemy `2.0.51`, Alembic `1.14+`, SQLite (por defecto, configurable vía `DATABASE_URL`)
+- **Base de datos y ORM**: SQLAlchemy `2.0.51`, Alembic `1.14+`, MySQL (`PyMySQL`, configurable vía `DATABASE_URL`)
 - **Seguridad**: `python-jose`, `bcrypt==4.0.1`, `slowapi`
 - **Frontend**: Plantillas Jinja2 `3.1.5`, Tailwind CSS (CDN), JavaScript vanilla (`static/app.js`)
 - **Pruebas y Contenedores**: Pytest `8.3.4`, `httpx==0.28.1`, Docker & Docker Compose
@@ -73,11 +73,12 @@ NewMediTrack/
 ├── services/                # Lógica de negocio desacoplada por dominio
 ├── routers/                 # Routers REST modulares bajo /api/*
 ├── alembic/                 # Configuración y scripts de migración de base de datos
+├── scripts/                 # Utilidades CLI (incluye migración de datos SQLite -> MySQL)
 ├── templates/               # Vistas Jinja2 organizadas en layouts/, partials/ y pages/
 ├── static/                  # Cliente JavaScript (static/app.js) y recursos estáticos
 ├── tests/                   # Suite de pruebas automatizadas con Pytest
 ├── Dockerfile               # Imagen Docker de producción (Python 3.14-slim + usuario no root)
-├── docker-compose.yml       # Orquestación con volumen persistente para SQLite
+├── docker-compose.yml       # Orquestación de FastAPI + MySQL 8.0 con volumen persistente
 ├── .dockerignore            # Exclusiones para el contexto de construcción Docker
 ├── .htaccess                # Reglas de protección de lógica y cabeceras para despliegues Apache
 ├── requirements.txt         # Dependencias de Python
@@ -102,7 +103,7 @@ Variables principales configurables en `.env`:
 | `ENVIRONMENT` | Entorno de ejecución (`development` o `production`) | `development` |
 | `SECRET_KEY` | Clave secreta JWT (**en `production` es obligatorio usar >= 32 caracteres aleatorios**) | Valor dev local |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración de la sesión en minutos | `480` |
-| `DATABASE_URL` | Cadena de conexión SQLAlchemy | `sqlite:///./meditrack.db` |
+| `DATABASE_URL` | Cadena de conexión SQLAlchemy | `mysql+pymysql://root@127.0.0.1:3306/meditrack?charset=utf8mb4` |
 | `APP_TIMEZONE` | Zona horaria IANA de la aplicación | `America/Bogota` |
 | `TIMEZONE_OFFSET_HOURS` | Desfase horario UTC de respaldo | `-5` |
 | `DEMO_*` | Credenciales opcionales sembradas solo cuando `ENVIRONMENT=development` | Ver `.env.example` |
@@ -145,7 +146,15 @@ Rutas principales disponibles tras iniciar:
 
 ## Despliegue con Docker
 
-El repositorio incluye [`Dockerfile`](Dockerfile), [`.dockerignore`](.dockerignore) y [`docker-compose.yml`](docker-compose.yml) listos para levantar el servicio con persistencia de la base de datos SQLite en el volumen `meditrack_data` (`/app/data/meditrack.db`).
+El repositorio incluye [`Dockerfile`](Dockerfile), [`.dockerignore`](.dockerignore) y [`docker-compose.yml`](docker-compose.yml) listos para levantar el servicio web junto con **MySQL 8.0** y persistencia en el volumen `mysql_data` (`/var/lib/mysql`).
+
+### Migrar datos existentes de SQLite a MySQL
+
+Si ya tenías datos guardados en `meditrack.db`, asegúrate de tener tu servidor MySQL encendido (por ejemplo, desde el Panel de Control de XAMPP) y ejecuta:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\migrate_sqlite_to_mysql.py
+```
 
 ### Levantar con Docker Compose
 

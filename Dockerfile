@@ -3,8 +3,7 @@ FROM python:3.14-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    TZ=America/Bogota \
-    DATABASE_URL=sqlite:////app/data/meditrack.db
+    TZ=America/Bogota
 
 WORKDIR /app
 
@@ -20,9 +19,8 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # Copiar código de la aplicación
 COPY . .
 
-# Crear usuario sin privilegios y directorio persistente para SQLite
+# Crear usuario sin privilegios
 RUN useradd --create-home --shell /bin/bash meditrack \
-    && mkdir -p /app/data \
     && chown -R meditrack:meditrack /app
 
 USER meditrack

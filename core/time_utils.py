@@ -20,7 +20,7 @@ def get_app_now() -> datetime:
 
 
 def get_app_now_naive() -> datetime:
-    """Retorna la fecha y hora actual en hora local de la app como datetime naive para SQLite."""
+    """Retorna la fecha y hora actual en hora local de la app como datetime naive para la base de datos."""
     return datetime.now(APP_TIMEZONE).replace(tzinfo=None)
 
 

@@ -1,4 +1,4 @@
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_DEV_SECRET = "meditrack-local-7f4b9d2c8a1e6f3b5d7c9a2e4f6b8d1c"
@@ -23,8 +23,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(default=480)
 
-    # Base de Datos
-    database_url: str = Field(default="sqlite:///./meditrack.db")
+    # Base de Datos (MySQL por defecto mediante PyMySQL)
+    database_url: str = Field(
+        default="mysql+pymysql://root@127.0.0.1:3306/meditrack?charset=utf8mb4"
+    )
 
     # Zona Horaria
     app_timezone: str = Field(default="America/Bogota")
@@ -53,6 +55,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if isinstance(value, str) and value.startswith("mysql://"):
+            return "mysql+pymysql://" + value[len("mysql://"):]
+        return value
 
     @property
     def is_development(self) -> bool:

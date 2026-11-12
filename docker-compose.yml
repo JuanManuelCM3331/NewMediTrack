@@ -1,10 +1,37 @@
 services:
+  db:
+    image: mysql:8.0
+    container_name: meditrack-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-meditrack}
+      MYSQL_USER: ${MYSQL_USER:-meditrack}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-meditrack123}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      TZ: ${APP_TIMEZONE:-America/Bogota}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   meditrack:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: meditrack-app
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "${PORT:-8000}:8000"
     env_file:
@@ -13,12 +40,10 @@ services:
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       SECRET_KEY: ${SECRET_KEY:-meditrack-local-7f4b9d2c8a1e6f3b5d7c9a2e4f6b8d1c}
-      DATABASE_URL: sqlite:////app/data/meditrack.db
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-meditrack}:${MYSQL_PASSWORD:-meditrack123}@db:3306/${MYSQL_DATABASE:-meditrack}?charset=utf8mb4
       APP_TIMEZONE: ${APP_TIMEZONE:-America/Bogota}
       TIMEZONE_OFFSET_HOURS: ${TIMEZONE_OFFSET_HOURS:--5}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
-    volumes:
-      - meditrack_data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 30s
@@ -27,5 +52,5 @@ services:
       start_period: 15s
 
 volumes:
-  meditrack_data:
+  mysql_data:
     driver: local
